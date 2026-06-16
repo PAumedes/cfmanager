@@ -1,0 +1,33 @@
+name: Publish to PyPI
+
+# Run manually from the Actions tab, or set up after adding PYPI_API_TOKEN secret.
+# How to set up:
+#   1. Create an account at pypi.org
+#   2. Generate an API token at pypi.org/manage/account/token/
+#   3. Add it as a repo secret: Settings → Secrets → PYPI_API_TOKEN
+#   4. Run this workflow manually from the Actions tab
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag to publish (e.g. v0.1.0)"
+        required: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.version }}
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Build wheel + sdist
+        run: uv build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}

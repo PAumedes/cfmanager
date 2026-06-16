@@ -62,21 +62,3 @@ jobs:
         with:
           files: dist/*
           generate_release_notes: true
-
-  # ─── Publish to PyPI ─────────────────────────────────────────────────────────
-  publish:
-    needs: build
-    runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: astral-sh/setup-uv@v4
-
-      - name: Build wheel + sdist
-        run: uv build
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
