@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from textual.command import Provider, Hit, Hits
+from textual.command import Hit, Hits, Provider
 
 
 class CFManagerCommandProvider(Provider):

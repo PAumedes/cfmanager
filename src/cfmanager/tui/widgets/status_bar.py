@@ -2,6 +2,7 @@ from textual.app import ComposeResult
 from textual.widget import Widget
 from textual.widgets import Label
 
+
 class StatusBar(Widget):
     def __init__(self, account_name: str = "Loading...", status: str = "Connecting", **kwargs) -> None:
         self.account_name = account_name

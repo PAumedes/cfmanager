@@ -1,21 +1,21 @@
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal
-from textual.widgets import Header, ContentSwitcher
+from textual.widgets import ContentSwitcher, Header
 
-from cfmanager.core.config import Config
 from cfmanager.core.client import CloudflareClient
+from cfmanager.core.config import Config
+from cfmanager.tui.widgets.dialogs import TokenSetupDialog
 from cfmanager.tui.widgets.sidebar import Sidebar
 from cfmanager.tui.widgets.status_bar import StatusBar
-from cfmanager.tui.widgets.dialogs import TokenSetupDialog
 
-from cfmanager.tui.screens.dashboard import DashboardView
-from cfmanager.tui.screens.zones import ZonesView
-from cfmanager.tui.screens.dns import DNSView
-from cfmanager.tui.screens.ssl import SSLView
-from cfmanager.tui.screens.r2 import R2View
-from cfmanager.tui.screens.pages import PagesView
-from cfmanager.tui.screens.loadbalancers import LoadBalancerView
 from cfmanager.tui.commands import CFManagerCommandProvider
+from cfmanager.tui.screens.dashboard import DashboardView
+from cfmanager.tui.screens.dns import DNSView
+from cfmanager.tui.screens.loadbalancers import LoadBalancerView
+from cfmanager.tui.screens.pages import PagesView
+from cfmanager.tui.screens.r2 import R2View
+from cfmanager.tui.screens.ssl import SSLView
+from cfmanager.tui.screens.zones import ZonesView
 
 
 class CFManagerApp(App):

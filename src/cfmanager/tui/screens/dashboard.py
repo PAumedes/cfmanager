@@ -1,7 +1,8 @@
 from textual.app import ComposeResult
+from textual.containers import Container, Vertical
 from textual.widget import Widget
 from textual.widgets import Label, Static
-from textual.containers import Vertical, Container
+
 
 class DashboardView(Widget):
     def compose(self) -> ComposeResult:

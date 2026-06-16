@@ -1,13 +1,14 @@
 from typing import Optional
+
 from textual.app import ComposeResult
+from textual.containers import Container, Grid, Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widget import Widget
-from textual.widgets import Label, DataTable, Button, Input
-from textual.containers import Container, Grid, Vertical, Horizontal
+from textual.widgets import Button, DataTable, Input, Label
+
+from cfmanager.core.logger import get_logger
 from cfmanager.services.r2 import R2Service
 from cfmanager.tui.widgets.dialogs import ConfirmDialog
-from cfmanager.core.logger import get_logger
-
 logger = get_logger()
 
 

@@ -1,11 +1,12 @@
-import typer
 from typing import Optional
 
+import typer
+
 from cfmanager import __version__
-from cfmanager.core.config import Config
 from cfmanager.core.client import CloudflareClient
-from cfmanager.core.logger import setup_logger
+from cfmanager.core.config import Config
 from cfmanager.core.exceptions import CFManagerError
+from cfmanager.core.logger import setup_logger
 
 app = typer.Typer(
     name="cfm",

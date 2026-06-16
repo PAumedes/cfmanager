@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
+
 from cfmanager.core.exceptions import ConfigError
 
 class Config:

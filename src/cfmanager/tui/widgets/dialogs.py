@@ -1,8 +1,10 @@
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 from textual.app import ComposeResult
+from textual.containers import Center, Grid, Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Label, Button, Input, Checkbox, Select
-from textual.containers import Grid, Horizontal, Vertical, Center
+from textual.widgets import Button, Checkbox, Input, Label, Select
+
 
 class TokenSetupDialog(ModalScreen[Optional[str]]):
     """First-run dialog shown when no API token is configured."""

@@ -1,9 +1,10 @@
-import typer
 from typing import Optional
 
-from cfmanager.services.pages import PagesService
-from cfmanager.core.output import OutputFormatter
+import typer
+
 from cfmanager.core.exceptions import CFManagerError
+from cfmanager.core.output import OutputFormatter
+from cfmanager.services.pages import PagesService
 
 app = typer.Typer(help="Manage Cloudflare Pages", no_args_is_help=True)
 

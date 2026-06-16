@@ -1,11 +1,12 @@
 from typing import Optional
-from textual.app import ComposeResult
-from textual.widget import Widget
-from textual.widgets import Label, DataTable
-from textual.containers import Container
-from cfmanager.services.pages import PagesService
-from cfmanager.core.logger import get_logger
 
+from textual.app import ComposeResult
+from textual.containers import Container
+from textual.widget import Widget
+from textual.widgets import DataTable, Label
+
+from cfmanager.core.logger import get_logger
+from cfmanager.services.pages import PagesService
 logger = get_logger()
 
 

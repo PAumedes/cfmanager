@@ -1,5 +1,7 @@
 from typing import Optional
+
 from cloudflare import Cloudflare, AsyncCloudflare
+
 from cfmanager.core.exceptions import APIError
 from cfmanager.core.logger import get_logger
 

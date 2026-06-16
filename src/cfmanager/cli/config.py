@@ -1,4 +1,5 @@
 import typer
+
 from cfmanager.core.config import Config
 
 app = typer.Typer(help="Manage cfm configuration.", no_args_is_help=True)

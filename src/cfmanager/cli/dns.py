@@ -1,9 +1,10 @@
-import typer
 from typing import Optional
 
-from cfmanager.services.dns import DNSService
-from cfmanager.core.output import OutputFormatter
+import typer
+
 from cfmanager.core.exceptions import CFManagerError
+from cfmanager.core.output import OutputFormatter
+from cfmanager.services.dns import DNSService
 
 app = typer.Typer(help="Manage DNS Records", no_args_is_help=True)
 
