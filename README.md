@@ -2,7 +2,7 @@
 
 A CLI & TUI for managing Cloudflare infrastructure
 
-[Installation](#installation) • [Quick Start](#quick-start) • [CLI Usage](#cli-usage) • [TUI](#tui) • [Configuration](#configuration)
+[Installation](#installation) • [Quick Start](#quick-start) • [CLI Usage](#cli-usage) • [TUI](#tui) • [Configuration](#configuration) • [Development](#development)
 
 [![Tests](https://github.com/PAumedes/cfmanager/actions/workflows/test.yml/badge.svg)](https://github.com/PAumedes/cfmanager/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -28,15 +28,13 @@ CFManager (`cfm`) is a terminal-based Cloudflare management tool that provides b
 | **Inline Editing** | — | ✅ |
 | **Real-time Status Indicators** | — | ✅ |
 
-### TUI Dashboard
-
-> A Cloudflare-branded dark theme with sidebar navigation, filterable data tables, modal dialogs, and keyboard-driven workflows.
+> **TUI Dashboard** — Cloudflare-branded dark theme with sidebar navigation, filterable data tables, modal dialogs, and keyboard-driven workflows.
 
 ## Installation
 
 ### Pre-built binary (recommended for non-Python users)
 
-Download the latest binary from [GitHub Releases](https://github.com/PAumedes/cfmanager/releases), then:
+Download the latest binary from [GitHub Releases](https://github.com/PAumedes/cfmanager/releases):
 
 **Linux / macOS:**
 
@@ -48,7 +46,7 @@ cfm --help
 
 **Windows:**
 
-Download `cfm.exe` — no Python required. Run it directly from PowerShell or Command Prompt.
+Download `cfm.exe` — no Python required. Double-click to open the TUI, or run from PowerShell/Command Prompt for CLI usage.
 
 ### uv tool (recommended for Python users)
 
@@ -108,135 +106,84 @@ cfm -o csv <command>    # CSV output
 ### Zones / Domains
 
 ```bash
-# List all zones
 cfm zones list
-
-# Filter by name
 cfm zones list --name "example.com"
-
-# Get zone details
 cfm zones get <zone-id>
-
-# Delete a zone (with confirmation)
 cfm zones delete <zone-id>
-
-# Purge all cache
 cfm zones purge-cache <zone-id> --all
-
-# Purge specific files
-cfm zones purge-cache <zone-id> --files "https://example.com/style.css,https://example.com/app.js"
+cfm zones purge-cache <zone-id> --files "https://example.com/style.css"
 ```
 
 ### DNS Records
 
 ```bash
-# List all DNS records for a zone
 cfm dns list <zone-id>
-
-# Filter by type
 cfm dns list <zone-id> --type A
 
-# Create a new record
 cfm dns create <zone-id> \
-  --name "api" \
-  --type A \
-  --content "192.0.2.1" \
-  --ttl 3600 \
-  --proxied
+  --name "api" --type A --content "192.0.2.1" --ttl 3600 --proxied
 
-# Edit a record
-cfm dns edit <zone-id> <record-id> \
-  --content "192.0.2.2" \
-  --ttl 1800
-
-# Delete a record
+cfm dns edit <zone-id> <record-id> --content "192.0.2.2" --ttl 1800
 cfm dns delete <zone-id> <record-id> --yes
 ```
 
 ### SSL/TLS
 
 ```bash
-# View SSL status for a zone
 cfm ssl status <zone-id>
-
-# Change SSL mode
-cfm ssl set <zone-id> --mode strict
-
-# List certificate packs
+cfm ssl set <zone-id> --mode strict   # off | flexible | full | strict
 cfm ssl certs <zone-id>
 ```
 
-### R2 Storage (Buckets & Objects)
+### R2 Storage
 
 ```bash
-# List all R2 buckets
 cfm r2 list
-
-# Create a new bucket
 cfm r2 create --name "my-assets" --location-hint weur
-
-# View bucket usage stats
 cfm r2 usage my-assets
-
-# Delete a bucket
 cfm r2 delete my-assets --yes
 
-# List objects inside a bucket
 cfm r2 objects list my-assets
-
-# Upload an object
 cfm r2 objects upload my-assets /path/to/file.jpg file.jpg
-
-# Delete an object
 cfm r2 objects delete my-assets file.jpg
 ```
+
+> R2 object operations require `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY` — see [Configuration](#configuration).
 
 ### Pages
 
 ```bash
-# List all Pages projects
 cfm pages list
-
-# View project details
 cfm pages get my-site
-
-# List deployments
 cfm pages deployments my-site
-
-# Rollback to a previous deployment
 cfm pages rollback my-site <deployment-id>
 ```
 
 ### Load Balancers
 
 ```bash
-# List load balancers for a zone
 cfm lb list <zone-id>
-
-# Create a load balancer
-cfm lb create <zone-id> \
-  --name "api-lb" \
-  --pools <pool-id-1>,<pool-id-2>
-
-# Toggle load balancer
+cfm lb create <zone-id> --name "api-lb" --pools <pool-id-1>,<pool-id-2>
 cfm lb edit <zone-id> <lb-id> --enabled
 cfm lb edit <zone-id> <lb-id> --disabled
-
-# List pools and health
 cfm lb pools list
 cfm lb pools health <pool-id>
-
-# Delete a load balancer
 cfm lb delete <zone-id> <lb-id> --yes
+```
+
+### Config
+
+```bash
+cfm config set-token TOKEN   # Save token to ~/.cfmanager/.env
+cfm config show              # Show current config (token masked)
+cfm config path              # Show config file location
 ```
 
 ## TUI
 
-Launch the interactive TUI with:
+Launch with `cfm tui` (or just double-click the binary — no arguments opens the TUI automatically).
 
-```bash
-cfm tui
-```
+If no token is configured, a setup dialog is shown on first launch.
 
 ### Navigation
 
@@ -244,13 +191,12 @@ cfm tui
 | --- | ------ |
 | `Ctrl+P` | Command palette |
 | `Ctrl+B` | Toggle sidebar |
-| `↑/↓` or `j/k` | Navigate lists |
-| `Enter` | Select / Open details |
-| `a` | Add new record/bucket/project |
-| `e` | Edit selected record |
-| `d` | Delete selected record/bucket/project |
-| `/` | Filter current table |
-| `?` | Show keyboard shortcuts |
+| `↑/↓` | Navigate lists |
+| `Enter` | Select / open details |
+| `a` | Add new record/bucket |
+| `e` | Edit selected item |
+| `d` | Delete selected item |
+| `b` / `Esc` | Go back (multi-level screens) |
 | `q` | Quit |
 
 ### Theme
@@ -259,35 +205,36 @@ CFManager uses a custom dark theme inspired by Cloudflare's brand:
 
 - **Background**: Deep navy (`#1a1a2e`)
 - **Accent**: Cloudflare orange (`#F6821F`)
-- **Status colors**: Active / Pending / Error
 
 ## Configuration
 
-### Token setup
+### Token lookup order
 
-```bash
-cfm config set-token TOKEN   # Save token to ~/.cfmanager/.env
-cfm config show              # Show current config (token masked)
-cfm config path              # Show config file location
-```
+Token resolution (last one wins):
 
-Token lookup order:
-
-1. `CLOUDFLARE_API_TOKEN` environment variable
-2. `.env` in the current directory
-3. `~/.cfmanager/.env` (set via `cfm config set-token`)
+1. `~/.cfmanager/.env` (set via `cfm config set-token`)
+2. `.env` in the current working directory
+3. `CLOUDFLARE_API_TOKEN` environment variable ← always wins if set
 
 ### Environment Variables
 
 | Variable | Required | Description |
-| -------- | -------- | ----------- |
+| -------- | :------: | ----------- |
 | `CLOUDFLARE_API_TOKEN` | Yes | Your Cloudflare API token |
-| `CFM_LOG_LEVEL` | No | Log level: `DEBUG`, `INFO` (default), `WARNING`, `ERROR` |
+| `R2_ACCESS_KEY_ID` | R2 objects only | R2-specific access key (from Cloudflare dashboard) |
+| `R2_SECRET_ACCESS_KEY` | R2 objects only | R2-specific secret key |
+| `CFM_LOG_LEVEL` | No | `DEBUG`, `INFO` (default), `WARNING`, `ERROR` |
 | `CFM_LOG_FILE` | No | Log file path (default: `~/.cfmanager/cfmanager.log`) |
+
+Copy `.env.example` to `.env` and fill in your values:
+
+```bash
+cp .env.example .env
+```
 
 ### API Token Permissions
 
-Create your token at [Cloudflare Dashboard → API Tokens](https://dash.cloudflare.com/profile/api-tokens) with these permissions:
+Create your token at [Cloudflare Dashboard → API Tokens](https://dash.cloudflare.com/profile/api-tokens):
 
 | Feature | Required Permissions |
 | ------- | -------------------- |
@@ -306,45 +253,70 @@ Create your token at [Cloudflare Dashboard → API Tokens](https://dash.cloudfla
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/) package manager
 
-### Setup & common tasks
+### Setup
 
 ```bash
-make dev       # Install dependencies
-make test      # Run tests
-make build     # Build executable (PyInstaller)
-make release VERSION=v0.2.0  # Tag + push release
+git clone https://github.com/PAumedes/cfmanager.git
+cd cfmanager
+make dev      # uv sync --dev
 ```
 
-Running individual commands:
+### Makefile reference
 
-```bash
-uv run cfm zones list
-uv run cfm tui
+```text
+make help          Show all targets
+
+# Development
+make run ARGS=''   Run cfm — e.g. make run ARGS='zones list'
+make tui           Launch the TUI dashboard
+make test          Run test suite
+make test-cov      Run tests with coverage report
+make lint          Check code with ruff
+make format        Auto-fix lint issues with ruff
+
+# Build
+make build         Build TUI+CLI binary with PyInstaller  → dist/cfm
+make build-nuitka  Build CLI-only binary with Nuitka      → dist/cfm-cli
+make clean         Remove build artifacts (dist/, build/)
+
+# Release
+make release         Bump minor version, update CHANGELOG, commit, tag, push
+make release patch   Patch bump  (0.2.0 → 0.2.1)
+make release minor   Minor bump  (0.2.0 → 0.3.0)
+make release major   Major bump  (0.2.0 → 1.0.0)
+
+# Git
+make push          Push current branch to origin
+make version       Print current version
 ```
 
 ### Testing
 
 ```bash
-# Run all tests
-uv run pytest tests/ -v
-
-# With coverage
-uv run pytest tests/ --cov=cfmanager --cov-report=term-missing
-
-# Specific suite
-uv run pytest tests/test_services/ -v
-uv run pytest tests/test_cli/ -v
-uv run pytest tests/test_tui/ -v
+make test                                        # all tests
+make test-cov                                    # with coverage report
+uv run pytest tests/test_services/ -v           # services only
+uv run pytest tests/test_cli/ -v                # CLI only
 ```
+
+### Release workflow
+
+```bash
+make release          # minor bump (default)
+make release patch    # patch bump
+make release major    # major bump
+```
+
+`make release` runs tests, bumps the version in `__init__.py`, prepends a dated entry to `CHANGELOG.md`, commits, tags, and pushes. GitHub Actions then builds binaries for Linux, macOS, and Windows automatically.
 
 ## Architecture
 
 ```
 cfm (entry point)
- ├── CLI Layer (Typer)        → Human-friendly commands
- ├── TUI Layer (Textual)      → Interactive dashboard
- ├── Service Layer             → Business logic & validation (uses cloudflare + boto3)
- ├── Core                      → Client, config, logging, output
+ ├── CLI Layer (Typer)        → scriptable commands, table/JSON/CSV output
+ ├── TUI Layer (Textual)      → interactive dashboard, keyboard-driven
+ ├── Service Layer            → business logic & validation (cloudflare SDK + boto3)
+ ├── Core                     → client, config, logging, output formatting
  └── Cloudflare API
 ```
 
@@ -352,7 +324,7 @@ Key design principles:
 - **Separation of concerns**: CLI and TUI are thin layers over shared services
 - **Async-ready**: TUI uses `AsyncCloudflare` for non-blocking API calls
 - **Testable**: All services accept a client parameter for easy mocking
-- **Extensible**: New services follow the same pattern — add service → CLI command → TUI screen
+- **Extensible**: New features follow the same pattern — service → CLI command → TUI screen
 
 ## Roadmap
 
@@ -367,7 +339,7 @@ Contributions are welcome. Open an issue first to discuss what you'd like to cha
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/my-feature`)
-3. Run tests (`uv run pytest`)
+3. Run tests (`make test`)
 4. Commit your changes
 5. Open a Pull Request
 
