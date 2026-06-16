@@ -1,7 +1,10 @@
 # Changelog
 
 All notable changes to CFManager are documented here.
-Format: `## [0.2.0] - 2026-06-16
+
+---
+
+## [0.2.0] - 2026-06-16
 
 - docs: fix release.py docstring to reflect minor as default
 - chore: change default release bump from patch to minor
@@ -9,10 +12,6 @@ Format: `## [0.2.0] - 2026-06-16
 - Fix exe: default to TUI on double-click, show setup dialog if no token
 - ci: opt into Node.js 24 across all workflows
 - Fix release workflow: remove PyPI job, add separate publish-pypi.yml
-
-## [version] - YYYY-MM-DD` followed by commits included in that release.
-
----
 
 ## [0.1.1] - 2026-06-16
 

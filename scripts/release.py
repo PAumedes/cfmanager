@@ -85,14 +85,15 @@ def make_entry(version: str, messages: list[str]) -> str:
 def prepend_changelog(entry: str) -> None:
     if CHANGELOG_FILE.exists():
         existing = CHANGELOG_FILE.read_text()
-        # Insert before the first versioned section
-        if "## [" in existing:
-            idx = existing.index("## [")
+        # Match only a section header at the start of a line (avoids hitting inline examples)
+        marker = "\n## ["
+        if marker in existing:
+            idx = existing.index(marker) + 1  # keep the leading newline, insert after it
             content = existing[:idx] + entry + "\n" + existing[idx:]
         else:
             content = existing.rstrip() + "\n\n" + entry
     else:
-        content = "# Changelog\n\nAll notable changes to CFManager are documented here.\n\n" + entry
+        content = "# Changelog\n\nAll notable changes to CFManager are documented here.\n\n---\n\n" + entry
     CHANGELOG_FILE.write_text(content)
 
 
@@ -100,9 +101,11 @@ def prepend_changelog(entry: str) -> None:
 
 def run_tests() -> None:
     print("Running tests...")
+    import os
     result = subprocess.run(
-        ["uv", "run", "pytest", "tests/", "-q", "--tb=short"],
-        cwd=ROOT
+        ["uv", "run", "--frozen", "pytest", "tests/", "-q", "--tb=short"],
+        cwd=ROOT,
+        env={**os.environ, "UV_PROJECT_ENVIRONMENT": os.environ.get("UV_PROJECT_ENVIRONMENT", "")},
     )
     if result.returncode != 0:
         raise SystemExit("Tests failed. Release aborted.")
