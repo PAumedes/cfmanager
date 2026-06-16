@@ -1,4 +1,3 @@
-import sys
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal
 from textual.widgets import Header, ContentSwitcher
@@ -7,6 +6,7 @@ from cfmanager.core.config import Config
 from cfmanager.core.client import CloudflareClient
 from cfmanager.tui.widgets.sidebar import Sidebar
 from cfmanager.tui.widgets.status_bar import StatusBar
+from cfmanager.tui.widgets.dialogs import TokenSetupDialog
 
 from cfmanager.tui.screens.dashboard import DashboardView
 from cfmanager.tui.screens.zones import ZonesView
@@ -17,6 +17,7 @@ from cfmanager.tui.screens.pages import PagesView
 from cfmanager.tui.screens.loadbalancers import LoadBalancerView
 from cfmanager.tui.commands import CFManagerCommandProvider
 
+
 class CFManagerApp(App):
     CSS_PATH = "theme.tcss"
     COMMANDS = {CFManagerCommandProvider}
@@ -26,7 +27,7 @@ class CFManagerApp(App):
         ("q", "quit", "Quit"),
     ]
 
-    def __init__(self, config: Config, client: CloudflareClient, **kwargs):
+    def __init__(self, config: Config, client: CloudflareClient | None, **kwargs):
         self.cf_config = config
         self.cf_client = client
         super().__init__(**kwargs)
@@ -46,7 +47,19 @@ class CFManagerApp(App):
         yield StatusBar(id="status-bar")
 
     async def on_mount(self) -> None:
-        self.run_worker(self.load_account_details())
+        if self.cf_client is None:
+            # No token configured — show first-run setup dialog
+            async def handle_token(token: str | None) -> None:
+                if token:
+                    Config.save_token(token)
+                    self.cf_client = CloudflareClient(api_token=token)
+                    self.run_worker(self.load_account_details())
+                else:
+                    status_bar = self.query_one(StatusBar)
+                    status_bar.update_status(account_name="—", status="No token — run: cfm config set-token YOUR_TOKEN")
+            self.push_screen(TokenSetupDialog(), handle_token)
+        else:
+            self.run_worker(self.load_account_details())
 
     async def load_account_details(self) -> None:
         status_bar = self.query_one(StatusBar)
@@ -61,26 +74,18 @@ class CFManagerApp(App):
         switcher = self.query_one("#content-switcher")
         switcher.current = message.screen_name
 
-        # Proactively trigger a refresh if switching to Zones
         if message.screen_name == "zones":
-            zones_view = self.query_one("#zones")
-            self.run_worker(zones_view.refresh_zones())
-        # Proactively refresh DNS if switching back and zone is active
+            self.run_worker(self.query_one("#zones").refresh_zones())
         elif message.screen_name == "dns":
-            dns_view = self.query_one("#dns")
-            self.run_worker(dns_view.refresh_records())
+            self.run_worker(self.query_one("#dns").refresh_records())
         elif message.screen_name == "ssl":
-            ssl_view = self.query_one("#ssl")
-            self.run_worker(ssl_view.refresh_data())
+            self.run_worker(self.query_one("#ssl").refresh_data())
         elif message.screen_name == "r2":
-            r2_view = self.query_one("#r2")
-            self.run_worker(r2_view.refresh_data())
+            self.run_worker(self.query_one("#r2").refresh_data())
         elif message.screen_name == "pages":
-            pages_view = self.query_one("#pages")
-            self.run_worker(pages_view.refresh_data())
+            self.run_worker(self.query_one("#pages").refresh_data())
         elif message.screen_name == "lb":
-            lb_view = self.query_one("#lb")
-            self.run_worker(lb_view.refresh_data())
+            self.run_worker(self.query_one("#lb").refresh_data())
 
     def action_toggle_sidebar(self) -> None:
         sidebar = self.query_one("#sidebar")
@@ -88,17 +93,10 @@ class CFManagerApp(App):
 
 
 def run_tui_app():
-    config = Config()
-    try:
-        config.validate()
-    except Exception as e:
-        print(f"Configuration Error: {e}", file=sys.stderr)
-        sys.exit(1)
-
-    # Pre-setup logger with the config options
     from cfmanager.core.logger import setup_logger
+    config = Config()
     setup_logger(config.log_level, config.log_file)
 
-    client = CloudflareClient(api_token=config.api_token)
-    app = CFManagerApp(config, client)
-    app.run()
+    # Pass client=None if no token — app handles it with setup dialog
+    client = CloudflareClient(api_token=config.api_token) if config.api_token else None
+    CFManagerApp(config, client).run()

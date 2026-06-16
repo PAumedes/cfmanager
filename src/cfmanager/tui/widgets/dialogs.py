@@ -2,7 +2,66 @@ from typing import Dict, Any, Optional
 from textual.app import ComposeResult
 from textual.screen import ModalScreen
 from textual.widgets import Label, Button, Input, Checkbox, Select
-from textual.containers import Grid, Horizontal, Vertical
+from textual.containers import Grid, Horizontal, Vertical, Center
+
+class TokenSetupDialog(ModalScreen[Optional[str]]):
+    """First-run dialog shown when no API token is configured."""
+
+    DEFAULT_CSS = """
+    TokenSetupDialog {
+        align: center middle;
+    }
+    #setup-box {
+        background: $surface;
+        border: tall $primary;
+        padding: 2 4;
+        width: 60;
+        height: auto;
+    }
+    #setup-title {
+        text-style: bold;
+        color: $primary;
+        margin-bottom: 1;
+    }
+    #setup-hint {
+        color: $text-muted;
+        margin-bottom: 1;
+    }
+    #setup-token {
+        margin-bottom: 1;
+    }
+    """
+
+    def compose(self) -> ComposeResult:
+        with Center():
+            with Vertical(id="setup-box"):
+                yield Label("Welcome to CFManager", id="setup-title")
+                yield Label(
+                    "Enter your Cloudflare API token to get started.\n"
+                    "Create one at: dash.cloudflare.com/profile/api-tokens",
+                    id="setup-hint",
+                )
+                yield Input(placeholder="cf_xxxxxxxxxx", password=True, id="setup-token")
+                with Horizontal():
+                    yield Button("Connect", variant="primary", id="setup-save")
+                    yield Button("Skip", id="setup-skip")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "setup-save":
+            token = self.query_one("#setup-token", Input).value.strip()
+            if token:
+                self.dismiss(token)
+            else:
+                self.query_one("#setup-token", Input).border_title = "Token required"
+        else:
+            self.dismiss(None)
+
+    def on_key(self, event) -> None:
+        if event.key == "enter":
+            token = self.query_one("#setup-token", Input).value.strip()
+            if token:
+                self.dismiss(token)
+
 
 class ConfirmDialog(ModalScreen[bool]):
     def __init__(self, message: str) -> None:
