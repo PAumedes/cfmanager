@@ -20,11 +20,13 @@ def list_load_balancers(
     lb_service = LoadBalancerService(client)
     try:
         load_balancers = lb_service.list_load_balancers(zone_id)
+        for lb in load_balancers:
+            lb["default_pools"] = ", ".join(lb.get("default_pools") or [])
         formatter = OutputFormatter(output_format)
         formatter.format(
             load_balancers,
-            headers=["ID", "Name", "Enabled", "Pools", "Description"],
-            keys=["id", "name", "enabled", "default_pools", "description"]
+            headers=["ID", "Name", "Enabled", "Pools"],
+            keys=["id", "name", "enabled", "default_pools"]
         )
     except CFManagerError as e:
         typer.secho(f"Error: {e}", fg=typer.colors.RED, err=True)
@@ -35,14 +37,15 @@ def create_load_balancer(
     ctx: typer.Context,
     zone_id: str = typer.Argument(..., help="The ID of the zone."),
     name: str = typer.Option(..., "--name", "-n", help="The name (hostname) of the load balancer."),
-    pools: str = typer.Option(..., "--pools", help="Comma-separated list of pool IDs (ordered by priority).")
+    pools: str = typer.Option(..., "--pools", help="Comma-separated list of pool IDs (ordered by priority)."),
+    fallback_pool: str = typer.Option(..., "--fallback-pool", help="ID of the pool to use when all others are unhealthy."),
 ):
     client = ctx.obj["client"]
 
     pool_list = [p.strip() for p in pools.split(",")]
     lb_service = LoadBalancerService(client)
     try:
-        lb = lb_service.create_load_balancer(zone_id, name=name, pools=pool_list)
+        lb = lb_service.create_load_balancer(zone_id, name, pool_list, fallback_pool)
         typer.secho(
             f"Successfully created load balancer '{name}' ({lb.get('id', '')}) in zone {zone_id}",
             fg=typer.colors.GREEN
@@ -62,7 +65,10 @@ def edit_load_balancer(
 
     lb_service = LoadBalancerService(client)
     try:
-        lb = lb_service.edit_load_balancer(zone_id, lb_id, enabled=enabled)
+        kwargs = {}
+        if enabled is not None:
+            kwargs["enabled"] = enabled
+        lb = lb_service.edit_load_balancer(zone_id, lb_id, **kwargs)
         typer.secho(f"Successfully updated load balancer {lb_id}", fg=typer.colors.GREEN)
     except CFManagerError as e:
         typer.secho(f"Error: {e}", fg=typer.colors.RED, err=True)

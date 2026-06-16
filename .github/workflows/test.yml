@@ -30,4 +30,4 @@ jobs:
 
       - name: Lint
         run: |
-          uv run ruff check src/ || true
+          uv run ruff check src/

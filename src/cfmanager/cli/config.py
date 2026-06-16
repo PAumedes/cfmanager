@@ -18,7 +18,10 @@ def show_config():
     config = Config()
     token = config.api_token
     if token:
-        masked = token[:6] + "*" * (len(token) - 10) + token[-4:]
+        if len(token) <= 10:
+            masked = "*" * len(token)
+        else:
+            masked = token[:6] + "*" * (len(token) - 10) + token[-4:]
         typer.secho(f"CLOUDFLARE_API_TOKEN  {masked}", fg=typer.colors.GREEN)
     else:
         typer.secho("CLOUDFLARE_API_TOKEN  (not set)", fg=typer.colors.RED)

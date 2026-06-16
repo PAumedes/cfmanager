@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from functools import partial
 from textual.command import Provider, Hit, Hits
 
 
@@ -25,8 +24,7 @@ class CFManagerCommandProvider(Provider):
             score = matcher.match(label)
             if score > 0:
                 def _navigate(name: str = screen_name) -> None:
-                    switcher = app.query_one("#content-switcher")
-                    switcher.current = name
+                    app.navigate_to(name)
 
                 yield Hit(
                     score=score,

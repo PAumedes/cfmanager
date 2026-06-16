@@ -70,22 +70,25 @@ class CFManagerApp(App):
         except Exception as e:
             status_bar.update_status(account_name="Unknown", status=f"Error: {e}")
 
-    def on_sidebar_selected(self, message: Sidebar.Selected) -> None:
+    def navigate_to(self, screen_name: str) -> None:
         switcher = self.query_one("#content-switcher")
-        switcher.current = message.screen_name
+        switcher.current = screen_name
 
-        if message.screen_name == "zones":
+        if screen_name == "zones":
             self.run_worker(self.query_one("#zones").refresh_zones())
-        elif message.screen_name == "dns":
+        elif screen_name == "dns":
             self.run_worker(self.query_one("#dns").refresh_records())
-        elif message.screen_name == "ssl":
+        elif screen_name == "ssl":
             self.run_worker(self.query_one("#ssl").refresh_data())
-        elif message.screen_name == "r2":
+        elif screen_name == "r2":
             self.run_worker(self.query_one("#r2").refresh_data())
-        elif message.screen_name == "pages":
+        elif screen_name == "pages":
             self.run_worker(self.query_one("#pages").refresh_data())
-        elif message.screen_name == "lb":
+        elif screen_name == "lb":
             self.run_worker(self.query_one("#lb").refresh_data())
+
+    def on_sidebar_selected(self, message: Sidebar.Selected) -> None:
+        self.navigate_to(message.screen_name)
 
     def action_toggle_sidebar(self) -> None:
         sidebar = self.query_one("#sidebar")

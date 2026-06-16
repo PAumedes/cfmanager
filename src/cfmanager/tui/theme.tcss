@@ -9,7 +9,7 @@ Header {
     text-style: bold;
     height: 3;
     content-align: center middle;
-    border-bottom: thin #2D3748;
+    border-bottom: solid #2D3748;
 }
 
 Footer {
@@ -23,7 +23,7 @@ Sidebar {
     background: #0F1015;
     dock: left;
     height: 100%;
-    border-right: thin #2D3748;
+    border-right: solid #2D3748;
 }
 
 Sidebar #sidebar-title {
@@ -68,7 +68,7 @@ StatusBar {
 DataTable {
     height: 1fr;
     background: transparent;
-    border: thin #2D3748;
+    border: solid #2D3748;
     margin-top: 1;
 }
 
@@ -92,7 +92,6 @@ DataTable > .datatable--cursor {
 #screen-title {
     color: white;
     text-style: bold;
-    font-size: 150%;
     margin-bottom: 1;
 }
 
@@ -114,14 +113,14 @@ Button.-active {
 }
 
 Input {
-    border: thin #2D3748;
+    border: solid #2D3748;
     background: #1E293B;
     color: white;
     margin: 1 0;
 }
 
 Input:focus {
-    border: thin #F6821F;
+    border: solid #F6821F;
 }
 
 /* Dialog containers */

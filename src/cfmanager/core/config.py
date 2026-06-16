@@ -13,7 +13,7 @@ class Config:
             cfmanager_dotenv = Path.home() / ".cfmanager" / ".env"
             if cfmanager_dotenv.exists():
                 load_dotenv(dotenv_path=cfmanager_dotenv)
-            load_dotenv(override=True)  # cwd .env overrides ~/.cfmanager/.env
+            load_dotenv()  # cwd .env is loaded but does not override already-set values
 
         self.api_token = os.getenv("CLOUDFLARE_API_TOKEN")
         self.log_level = os.getenv("CFM_LOG_LEVEL", "INFO").upper()
@@ -41,12 +41,15 @@ class Config:
     @staticmethod
     def save_token(token: str) -> Path:
         config_file = Config.config_file()
-        config_file.parent.mkdir(parents=True, exist_ok=True)
+        config_dir = config_file.parent
+        config_dir.mkdir(parents=True, exist_ok=True)
+        config_dir.chmod(0o700)
         lines = []
         if config_file.exists():
             lines = [l for l in config_file.read_text().splitlines() if not l.startswith("CLOUDFLARE_API_TOKEN=")]
         lines.append(f"CLOUDFLARE_API_TOKEN={token}")
         config_file.write_text("\n".join(lines) + "\n")
+        config_file.chmod(0o600)
         return config_file
 
     def validate(self):

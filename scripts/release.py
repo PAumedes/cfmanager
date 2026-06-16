@@ -16,6 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
 INIT_FILE = ROOT / "src" / "cfmanager" / "__init__.py"
+PYPROJECT_FILE = ROOT / "pyproject.toml"
 CHANGELOG_FILE = ROOT / "CHANGELOG.md"
 
 
@@ -44,6 +45,10 @@ def write_version(version: str) -> None:
     text = INIT_FILE.read_text()
     text = re.sub(r'__version__\s*=\s*"[^"]+"', f'__version__ = "{version}"', text)
     INIT_FILE.write_text(text)
+
+    pyproject = PYPROJECT_FILE.read_text()
+    pyproject = re.sub(r'^version\s*=\s*"[^"]+"', f'version = "{version}"', pyproject, flags=re.MULTILINE)
+    PYPROJECT_FILE.write_text(pyproject)
 
 
 # ── Git helpers ────────────────────────────────────────────────────────────────
@@ -144,12 +149,12 @@ def main() -> None:
     entry = make_entry(new_version, messages)
     prepend_changelog(entry)
 
-    print(f"Updated {INIT_FILE.name} and CHANGELOG.md\n")
+    print(f"Updated {INIT_FILE.name}, {PYPROJECT_FILE.name}, and CHANGELOG.md\n")
     print("Changelog entry:")
     print(entry)
 
     # Commit + tag + push
-    git("add", str(INIT_FILE), str(CHANGELOG_FILE))
+    git("add", str(INIT_FILE), str(PYPROJECT_FILE), str(CHANGELOG_FILE))
     git("commit", "-m", f"chore: release {tag}")
     git("tag", tag)
     git("push", "origin", "main")

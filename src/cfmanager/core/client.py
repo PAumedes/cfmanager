@@ -16,13 +16,13 @@ class CloudflareClient:
     @property
     def sync_client(self) -> Cloudflare:
         if self._sync_client is None:
-            self._sync_client = Cloudflare(api_token=self.api_token)
+            self._sync_client = Cloudflare(api_token=self.api_token, timeout=30)
         return self._sync_client
 
     @property
     def async_client(self) -> AsyncCloudflare:
         if self._async_client is None:
-            self._async_client = AsyncCloudflare(api_token=self.api_token)
+            self._async_client = AsyncCloudflare(api_token=self.api_token, timeout=30)
         return self._async_client
 
     def get_account_id(self) -> str:

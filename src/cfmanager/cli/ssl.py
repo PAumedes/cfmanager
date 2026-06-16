@@ -22,8 +22,8 @@ def ssl_status(
             formatter = OutputFormatter(output_format)
             formatter.format([setting], headers=list(setting.keys()), keys=list(setting.keys()))
         else:
-            typer.secho(f"SSL Mode: {setting.get('value', 'unknown')}", fg=typer.colors.CYAN, bold=True)
-            cert_packs = setting.get("cert_packs", [])
+            typer.secho(f"SSL Mode: {setting.get('mode', 'unknown')}", fg=typer.colors.CYAN, bold=True)
+            cert_packs = setting.get("certificate_packs", [])
             if cert_packs:
                 typer.echo("\nCertificate Packs:")
                 formatter = OutputFormatter(output_format)
