@@ -2,14 +2,21 @@
 # Usage: make <target>  (run `make help` to list all targets)
 
 .DEFAULT_GOAL := help
-.PHONY: help dev test test-cov lint format run tui build build-nuitka clean push tag release version check
+.PHONY: help dev test test-cov lint format run tui build build-nuitka clean push version \
+        release major minor patch
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-# Auto-detect version from source
 VERSION := $(shell grep '__version__' src/cfmanager/__init__.py | grep -oP '"\K[^"]+')
-REMOTE   := origin
-BRANCH   := main
+REMOTE  := origin
+BRANCH  := main
+
+# Capture the bump type when passed as a positional word after "release"
+# e.g. "make release minor" → BUMP_TYPE=minor
+BUMP_TYPE := $(word 2, $(MAKECMDGOALS))
+ifeq ($(BUMP_TYPE),)
+BUMP_TYPE := patch
+endif
 
 # ── Help ──────────────────────────────────────────────────────────────────────
 
@@ -18,26 +25,29 @@ help:
 	@echo "  CFManager v$(VERSION) — available targets"
 	@echo ""
 	@echo "  Setup"
-	@echo "    make dev          Install all dependencies (uv sync --dev)"
+	@echo "    make dev           Install all dependencies (uv sync --dev)"
 	@echo ""
 	@echo "  Development"
-	@echo "    make run ARGS=''  Run cfm with optional args  e.g. make run ARGS='zones list'"
-	@echo "    make tui          Launch the TUI dashboard"
-	@echo "    make test         Run test suite"
-	@echo "    make test-cov     Run tests with coverage report"
-	@echo "    make lint         Check code with ruff"
-	@echo "    make format       Auto-fix lint issues with ruff"
+	@echo "    make run ARGS=''   Run cfm with optional args  e.g. make run ARGS='zones list'"
+	@echo "    make tui           Launch the TUI dashboard"
+	@echo "    make test          Run test suite"
+	@echo "    make test-cov      Run tests with coverage report"
+	@echo "    make lint          Check code with ruff"
+	@echo "    make format        Auto-fix lint issues with ruff"
 	@echo ""
 	@echo "  Build"
-	@echo "    make build        Build TUI+CLI binary with PyInstaller  → dist/cfm"
-	@echo "    make build-nuitka Build CLI-only binary with Nuitka      → dist/cfm-cli"
-	@echo "    make clean        Remove build artifacts (dist/, build/)"
+	@echo "    make build         Build TUI+CLI binary with PyInstaller  → dist/cfm"
+	@echo "    make build-nuitka  Build CLI-only binary with Nuitka      → dist/cfm-cli"
+	@echo "    make clean         Remove build artifacts (dist/, build/)"
 	@echo ""
-	@echo "  Release"
-	@echo "    make push                    Push current branch to $(REMOTE)"
-	@echo "    make tag VERSION=v1.2.3      Create + push a git tag"
-	@echo "    make release VERSION=v1.2.3  Test → push → tag  (triggers GitHub Actions)"
-	@echo "    make version                 Print current version"
+	@echo "  Release  (bumps version, updates CHANGELOG, commits, tags, pushes)"
+	@echo "    make release         → patch bump  $(VERSION) → next patch"
+	@echo "    make release patch   → patch bump  0.1.1 → 0.1.2"
+	@echo "    make release minor   → minor bump  0.1.1 → 0.2.0"
+	@echo "    make release major   → major bump  0.1.1 → 1.0.0"
+	@echo ""
+	@echo "    make push            Push current branch without releasing"
+	@echo "    make version         Print current version"
 	@echo ""
 
 # ── Setup ─────────────────────────────────────────────────────────────────────
@@ -85,26 +95,14 @@ clean:
 push:
 	git push $(REMOTE) $(BRANCH)
 
-# Usage: make tag VERSION=v0.2.0
-tag:
-	@if [ -z "$(VERSION)" ]; then echo "Usage: make tag VERSION=v1.2.3"; exit 1; fi
-	git tag $(VERSION)
-	git push $(REMOTE) $(VERSION)
-	@echo "Tagged $(VERSION) and pushed. GitHub Actions will build binaries."
-
-# Full release: run tests, push code, create + push tag
-# Usage: make release VERSION=v0.2.0
-release: check push tag
-	@echo ""
-	@echo "  Release $(VERSION) in flight."
-	@echo "  Watch the build at: https://github.com/PAumedes/cfmanager/actions"
-	@echo ""
-
-# Verify tests pass before releasing
-check:
-	@echo "Running tests before release..."
-	uv run pytest tests/ -q --tb=short
-	@echo "Tests passed."
-
 version:
 	@echo $(VERSION)
+
+# make release [major|minor|patch]
+# The script handles: tests → version bump → CHANGELOG → commit → tag → push
+release:
+	uv run python scripts/release.py $(BUMP_TYPE)
+
+# No-op targets so make doesn't error on "make release minor"
+major minor patch:
+	@:
