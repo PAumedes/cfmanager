@@ -4,6 +4,13 @@ All notable changes to CFManager are documented here.
 
 ---
 
+## [0.3.0] - 2026-06-16
+
+- fix: apply code review findings and add comprehensive test coverage
+- docs: rewrite README to match current Makefile and feature set
+- chore: remove internal planning and debug artifacts
+- fix: prevent CHANGELOG corruption when prepending new releases
+
 ## [0.2.0] - 2026-06-16
 
 - docs: fix release.py docstring to reflect minor as default
