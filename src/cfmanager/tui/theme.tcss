@@ -1,0 +1,145 @@
+Screen {
+    background: #16171D;
+    color: #E2E8F0;
+}
+
+Header {
+    background: #0F1015;
+    color: #F6821F;
+    text-style: bold;
+    height: 3;
+    content-align: center middle;
+    border-bottom: thin #2D3748;
+}
+
+Footer {
+    background: #0F1015;
+    color: #A0AEC0;
+}
+
+/* Sidebar navigation styling */
+Sidebar {
+    width: 25;
+    background: #0F1015;
+    dock: left;
+    height: 100%;
+    border-right: thin #2D3748;
+}
+
+Sidebar #sidebar-title {
+    padding: 1 2;
+    background: #F6821F;
+    color: white;
+    text-align: center;
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+Sidebar ListView {
+    background: transparent;
+}
+
+Sidebar ListItem {
+    padding: 1 2;
+    color: #A0AEC0;
+}
+
+Sidebar ListItem:hover {
+    background: #1E293B;
+    color: white;
+}
+
+Sidebar ListItem.--active {
+    background: #F6821F;
+    color: white;
+    text-style: bold;
+}
+
+/* Connection status bar styling */
+StatusBar {
+    dock: bottom;
+    height: 1;
+    background: #0F1015;
+    color: #718096;
+    padding: 0 2;
+}
+
+/* DataTable customizations */
+DataTable {
+    height: 1fr;
+    background: transparent;
+    border: thin #2D3748;
+    margin-top: 1;
+}
+
+DataTable > .datatable--header {
+    background: #1E293B;
+    color: #F6821F;
+    text-style: bold;
+}
+
+DataTable > .datatable--cursor {
+    background: #F6821F;
+    color: white;
+}
+
+/* Reusable Container styling */
+#main-content {
+    padding: 1 2;
+    height: 1fr;
+}
+
+#screen-title {
+    color: white;
+    text-style: bold;
+    font-size: 150%;
+    margin-bottom: 1;
+}
+
+/* Button & input styling */
+Button {
+    background: #2D3748;
+    color: white;
+    border: none;
+    height: 3;
+    margin: 1 1;
+}
+
+Button:hover {
+    background: #4A5568;
+}
+
+Button.-active {
+    background: #F6821F;
+}
+
+Input {
+    border: thin #2D3748;
+    background: #1E293B;
+    color: white;
+    margin: 1 0;
+}
+
+Input:focus {
+    border: thin #F6821F;
+}
+
+/* Dialog containers */
+.dialog-container {
+    align: center middle;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.dialog-box {
+    width: 60;
+    height: auto;
+    background: #1A202C;
+    border: thick #2D3748;
+    padding: 1 2;
+}
+
+.dialog-title {
+    text-style: bold;
+    color: #F6821F;
+    margin-bottom: 1;
+}
