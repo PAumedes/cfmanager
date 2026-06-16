@@ -2,8 +2,9 @@
 """Bump version, generate changelog entry, commit, tag, and push.
 
 Usage:
-    python scripts/release.py patch   # 0.1.1 → 0.1.2  (default)
+    python scripts/release.py         # 0.1.1 → 0.2.0  (default: minor)
     python scripts/release.py minor   # 0.1.1 → 0.2.0
+    python scripts/release.py patch   # 0.1.1 → 0.1.2
     python scripts/release.py major   # 0.1.1 → 1.0.0
 """
 
