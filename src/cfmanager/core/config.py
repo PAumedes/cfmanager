@@ -6,12 +6,14 @@ from cfmanager.core.exceptions import ConfigError
 class Config:
     def __init__(self, load_env_file: bool = True):
         if load_env_file:
-            # Load from current working directory
-            load_dotenv()
-            # Also load from home directory if exists
-            home_dotenv = Path.home() / ".env"
-            if home_dotenv.exists():
-                load_dotenv(dotenv_path=home_dotenv)
+            # Priority order (lowest → highest, so last wins):
+            # 1. ~/.cfmanager/.env  (user-level, written by `cfm config set-token`)
+            # 2. .env in cwd        (project-level override)
+            # 3. environment variable CLOUDFLARE_API_TOKEN (always wins)
+            cfmanager_dotenv = Path.home() / ".cfmanager" / ".env"
+            if cfmanager_dotenv.exists():
+                load_dotenv(dotenv_path=cfmanager_dotenv)
+            load_dotenv(override=True)  # cwd .env overrides ~/.cfmanager/.env
 
         self.api_token = os.getenv("CLOUDFLARE_API_TOKEN")
         self.log_level = os.getenv("CFM_LOG_LEVEL", "INFO").upper()
@@ -28,9 +30,29 @@ class Config:
         else:
             self.log_file = default_log_file
 
+    @staticmethod
+    def config_dir() -> Path:
+        return Path.home() / ".cfmanager"
+
+    @staticmethod
+    def config_file() -> Path:
+        return Config.config_dir() / ".env"
+
+    @staticmethod
+    def save_token(token: str) -> Path:
+        config_file = Config.config_file()
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+        lines = []
+        if config_file.exists():
+            lines = [l for l in config_file.read_text().splitlines() if not l.startswith("CLOUDFLARE_API_TOKEN=")]
+        lines.append(f"CLOUDFLARE_API_TOKEN={token}")
+        config_file.write_text("\n".join(lines) + "\n")
+        return config_file
+
     def validate(self):
         if not self.api_token:
             raise ConfigError(
-                "CLOUDFLARE_API_TOKEN environment variable or .env file entry is missing.\n"
-                "Please configure CLOUDFLARE_API_TOKEN in your environment or a .env file."
+                "No API token found. Run:\n"
+                "  cfm config set-token YOUR_TOKEN\n"
+                "Or set the CLOUDFLARE_API_TOKEN environment variable."
             )

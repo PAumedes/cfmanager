@@ -1,25 +1,22 @@
-<p align="center">
-  <h1 align="center">☁️ CFManager</h1>
-  <p align="center">
-    <strong>A powerful CLI & TUI for managing Cloudflare infrastructure</strong>
-  </p>
-  <p align="center">
-    <a href="#installation">Installation</a> •
-    <a href="#quick-start">Quick Start</a> •
-    <a href="#cli-usage">CLI Usage</a> •
-    <a href="#tui-dashboard">TUI Dashboard</a> •
-    <a href="#configuration">Configuration</a>
-  </p>
-</p>
+# CFManager
+
+A CLI & TUI for managing Cloudflare infrastructure
+
+[Installation](#installation) • [Quick Start](#quick-start) • [CLI Usage](#cli-usage) • [TUI](#tui) • [Configuration](#configuration)
+
+[![Tests](https://github.com/PAumedes/cfmanager/actions/workflows/test.yml/badge.svg)](https://github.com/PAumedes/cfmanager/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 
 ---
 
 CFManager (`cfm`) is a terminal-based Cloudflare management tool that provides both a **rich interactive TUI dashboard** (powered by [Textual](https://textual.textualize.io/)) and a **scriptable CLI** (powered by [Typer](https://typer.tiangolo.com/)). Manage your DNS records, domains, SSL certificates, R2 storage, Pages deployments, and load balancers — all without leaving your terminal.
 
-## ✨ Features
+## Features
 
 | Feature | CLI | TUI |
-|---------|:---:|:---:|
+| ------- | :-: | :-: |
 | **Zone/Domain Management** | ✅ | ✅ |
 | **DNS Record CRUD** | ✅ | ✅ |
 | **SSL/TLS Settings** | ✅ | ✅ |
@@ -31,69 +28,72 @@ CFManager (`cfm`) is a terminal-based Cloudflare management tool that provides b
 | **Inline Editing** | — | ✅ |
 | **Real-time Status Indicators** | — | ✅ |
 
-### 🎨 TUI Dashboard
+### TUI Dashboard
 
 > A Cloudflare-branded dark theme with sidebar navigation, filterable data tables, modal dialogs, and keyboard-driven workflows.
 
-<!-- Screenshots will be added after implementation -->
+## Installation
 
-## 📦 Installation
+### Pre-built binary (recommended for non-Python users)
 
-### From GitHub Releases (Recommended)
+Download the latest binary from [GitHub Releases](https://github.com/PAumedes/cfmanager/releases), then:
 
-Download the latest pre-built binary for your platform from [Releases](https://github.com/yourusername/cfmanager/releases):
+**Linux / macOS:**
 
-- **Windows**: `cfm.exe` — standalone executable, no Python required
-- **Linux**: `cfm-linux-amd64`
-- **macOS**: `cfm-darwin-amd64`
+```bash
+chmod +x cfm-linux-amd64   # or cfm-darwin-amd64
+sudo mv cfm-linux-amd64 /usr/local/bin/cfm
+cfm --help
+```
 
-### From PyPI
+**Windows:**
+
+Download `cfm.exe` — no Python required. Run it directly from PowerShell or Command Prompt.
+
+### uv tool (recommended for Python users)
+
+```bash
+uv tool install cfmanager
+cfm --help
+```
+
+### pip
 
 ```bash
 pip install cfmanager
-# or with uv
-uv tool install cfmanager
 ```
 
-### From Source
+### From source
 
 ```bash
-git clone https://github.com/yourusername/cfmanager.git
+git clone https://github.com/PAumedes/cfmanager.git
 cd cfmanager
 uv sync
+uv run cfm --help
 ```
 
-## 🚀 Quick Start
-
-### 1. Set up your API Token
-
-Create a [Cloudflare API Token](https://dash.cloudflare.com/profile/api-tokens) with the permissions you need, then:
+## Quick Start
 
 ```bash
-# Option 1: Environment variable
-export CLOUDFLARE_API_TOKEN="your_token_here"
+# Set your Cloudflare API token (stored in ~/.cfmanager/.env)
+cfm config set-token YOUR_TOKEN_HERE
 
-# Option 2: .env file in your working directory
-echo "CLOUDFLARE_API_TOKEN=your_token_here" > .env
-```
-
-*Note: Account ID is automatically detected from the token at startup.*
-
-### 2. Verify connection
-
-```bash
+# Verify connection
 cfm zones list
-```
 
-### 3. Launch the TUI
-
-```bash
+# Launch TUI
 cfm tui
 ```
 
-## 💻 CLI Usage
+The token can also be set via environment variable:
 
-CFManager follows a `cfm <resource> <action>` pattern. All commands support `--output json` and `--output csv` for scripting.
+```bash
+export CLOUDFLARE_API_TOKEN=your_token_here
+```
+
+## CLI Usage
+
+`cfm` follows a `cfm <resource> <action>` pattern. All commands support `--output json` and `--output csv` for scripting.
 
 ### Global Options
 
@@ -230,7 +230,7 @@ cfm lb pools health <pool-id>
 cfm lb delete <zone-id> <lb-id> --yes
 ```
 
-## 🖥️ TUI Dashboard
+## TUI
 
 Launch the interactive TUI with:
 
@@ -241,7 +241,7 @@ cfm tui
 ### Navigation
 
 | Key | Action |
-|-----|--------|
+| --- | ------ |
 | `Ctrl+P` | Command palette |
 | `Ctrl+B` | Toggle sidebar |
 | `↑/↓` or `j/k` | Navigate lists |
@@ -256,35 +256,41 @@ cfm tui
 ### Theme
 
 CFManager uses a custom dark theme inspired by Cloudflare's brand:
+
 - **Background**: Deep navy (`#1a1a2e`)
 - **Accent**: Cloudflare orange (`#F6821F`)
-- **Status colors**: 🟢 Active / 🟡 Pending / 🔴 Error
+- **Status colors**: Active / Pending / Error
 
-## ⚙️ Configuration
+## Configuration
+
+### Token setup
+
+```bash
+cfm config set-token TOKEN   # Save token to ~/.cfmanager/.env
+cfm config show              # Show current config (token masked)
+cfm config path              # Show config file location
+```
+
+Token lookup order:
+
+1. `CLOUDFLARE_API_TOKEN` environment variable
+2. `.env` in the current directory
+3. `~/.cfmanager/.env` (set via `cfm config set-token`)
 
 ### Environment Variables
 
 | Variable | Required | Description |
-|----------|----------|-------------|
-| `CLOUDFLARE_API_TOKEN` | ✅ | Your Cloudflare API token |
-| `CFM_LOG_LEVEL` | ❌ | Log level: `DEBUG`, `INFO` (default), `WARNING`, `ERROR` |
-| `CFM_LOG_FILE` | ❌ | Log file path (default: `~/.cfmanager/cfmanager.log`) |
-
-### .env File
-
-Create a `.env` file in your working directory or home directory:
-
-```env
-CLOUDFLARE_API_TOKEN=your_token_here
-CFM_LOG_LEVEL=INFO
-```
+| -------- | -------- | ----------- |
+| `CLOUDFLARE_API_TOKEN` | Yes | Your Cloudflare API token |
+| `CFM_LOG_LEVEL` | No | Log level: `DEBUG`, `INFO` (default), `WARNING`, `ERROR` |
+| `CFM_LOG_FILE` | No | Log file path (default: `~/.cfmanager/cfmanager.log`) |
 
 ### API Token Permissions
 
 Create your token at [Cloudflare Dashboard → API Tokens](https://dash.cloudflare.com/profile/api-tokens) with these permissions:
 
 | Feature | Required Permissions |
-|---------|---------------------|
+| ------- | -------------------- |
 | Zones / DNS | Zone: Read, DNS: Edit |
 | SSL/TLS | SSL and Certificates: Edit |
 | R2 | Workers R2 Storage: Edit |
@@ -293,32 +299,27 @@ Create your token at [Cloudflare Dashboard → API Tokens](https://dash.cloudfla
 
 > **Tip**: Use the "Edit zone DNS" template as a starting point and add permissions as needed.
 
-## 🛠️ Development
+## Development
 
 ### Prerequisites
 
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/) package manager
 
-### Setup
+### Setup & common tasks
 
 ```bash
-git clone https://github.com/yourusername/cfmanager.git
-cd cfmanager
-uv sync --dev
+make dev       # Install dependencies
+make test      # Run tests
+make build     # Build executable (PyInstaller)
+make release VERSION=v0.2.0  # Tag + push release
 ```
 
-### Running
+Running individual commands:
 
 ```bash
-# CLI
 uv run cfm zones list
-
-# TUI
 uv run cfm tui
-
-# TUI with hot-reload (dev mode)
-uv run textual run --dev src/cfmanager/tui/app.py
 ```
 
 ### Testing
@@ -336,14 +337,7 @@ uv run pytest tests/test_cli/ -v
 uv run pytest tests/test_tui/ -v
 ```
 
-### Building the Windows Executable
-
-```bash
-uv run python scripts/build_exe.py
-# Output: dist/cfm.exe
-```
-
-## 🏗️ Architecture
+## Architecture
 
 ```
 cfm (entry point)
@@ -360,16 +354,16 @@ Key design principles:
 - **Testable**: All services accept a client parameter for easy mocking
 - **Extensible**: New services follow the same pattern — add service → CLI command → TUI screen
 
-## 🗺️ Roadmap
+## Roadmap
 
-- [x] **Phase 1**: Core foundation + Zones + DNS (CLI & TUI)
-- [ ] **Phase 2**: SSL/TLS + R2 Storage (with Objects) + Pages
-- [ ] **Phase 3**: Load Balancers + Windows .exe + Polish
-- [ ] **Future**: Multi-account profiles, Workers management, Firewall rules
+- [x] Phase 1: Core foundation + Zones + DNS (CLI & TUI)
+- [x] Phase 2: SSL/TLS + R2 Storage + Pages (CLI & TUI)
+- [x] Phase 3: Load Balancers + Windows .exe + Command Palette
+- [ ] Future: Multi-account profiles, Workers management, Firewall rules
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are welcome! Please open an issue first to discuss what you'd like to change.
+Contributions are welcome. Open an issue first to discuss what you'd like to change.
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/my-feature`)
@@ -377,14 +371,14 @@ Contributions are welcome! Please open an issue first to discuss what you'd like
 4. Commit your changes
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
 <p align="center">
-  Built with ❤️ using
+  Built with
   <a href="https://textual.textualize.io/">Textual</a>,
   <a href="https://typer.tiangolo.com/">Typer</a>, and the
   <a href="https://github.com/cloudflare/cloudflare-python">Cloudflare Python SDK</a>

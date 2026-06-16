@@ -36,17 +36,16 @@ def main(
         
     setup_logger(config.log_level, config.log_file)
     
-    # Validation is skipped if running 'tui' or help since those might not need token initially
-    # but for simplicity we validate unless help is requested.
-    # Actually, let's validate here, except for --version which is already handled
-    try:
-        config.validate()
-    except CFManagerError as e:
-        typer.secho(f"Configuration Error: {e}", fg=typer.colors.RED, err=True)
-        raise typer.Exit(code=1)
-        
-    client = CloudflareClient(api_token=config.api_token)
-    
+    # Skip token validation for `cfm config` subcommands (used to SET the token)
+    if ctx.invoked_subcommand != "config":
+        try:
+            config.validate()
+        except CFManagerError as e:
+            typer.secho(f"Error: {e}", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
+
+    client = CloudflareClient(api_token=config.api_token) if config.api_token else None
+
     ctx.obj["config"] = config
     ctx.obj["client"] = client
     ctx.obj["output_format"] = output
@@ -62,8 +61,9 @@ from cfmanager.cli import zones, dns
 app.add_typer(zones.app, name="zones")
 app.add_typer(dns.app, name="dns")
 
-from cfmanager.cli import ssl, r2, pages, loadbalancers
+from cfmanager.cli import ssl, r2, pages, loadbalancers, config as config_cli
 app.add_typer(ssl.app, name="ssl")
 app.add_typer(r2.app, name="r2")
 app.add_typer(pages.app, name="pages")
 app.add_typer(loadbalancers.app, name="lb")
+app.add_typer(config_cli.app, name="config")
