@@ -15,7 +15,7 @@ BRANCH  := main
 # e.g. "make release minor" → BUMP_TYPE=minor
 BUMP_TYPE := $(word 2, $(MAKECMDGOALS))
 ifeq ($(BUMP_TYPE),)
-BUMP_TYPE := patch
+BUMP_TYPE := minor
 endif
 
 # ── Help ──────────────────────────────────────────────────────────────────────
@@ -41,7 +41,7 @@ help:
 	@echo "    make clean         Remove build artifacts (dist/, build/)"
 	@echo ""
 	@echo "  Release  (bumps version, updates CHANGELOG, commits, tags, pushes)"
-	@echo "    make release         → patch bump  $(VERSION) → next patch"
+	@echo "    make release         → minor bump  $(VERSION) → next minor"
 	@echo "    make release patch   → patch bump  0.1.1 → 0.1.2"
 	@echo "    make release minor   → minor bump  0.1.1 → 0.2.0"
 	@echo "    make release major   → major bump  0.1.1 → 1.0.0"

@@ -111,7 +111,7 @@ def run_tests() -> None:
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    kind = sys.argv[1].lower() if len(sys.argv) > 1 else "patch"
+    kind = sys.argv[1].lower() if len(sys.argv) > 1 else "minor"
 
     current = read_version()
     new_tuple = bump(current, kind)
