@@ -4,6 +4,11 @@ All notable changes to CFManager are documented here.
 
 ---
 
+## [0.4.0] - 2026-06-17
+
+- feat: TUI improvements and code review fixes
+- fix: resolve all ruff lint violations exposed by removing || true
+
 ## [0.3.0] - 2026-06-16
 
 - fix: apply code review findings and add comprehensive test coverage
