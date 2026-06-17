@@ -1,9 +1,12 @@
+import time
+
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal
 from textual.widgets import ContentSwitcher, Header
 
 from cfmanager.core.client import CloudflareClient
 from cfmanager.core.config import Config
+from cfmanager.core.errors import format_error
 from cfmanager.tui.widgets.dialogs import TokenSetupDialog
 from cfmanager.tui.widgets.sidebar import Sidebar
 from cfmanager.tui.widgets.status_bar import StatusBar
@@ -47,6 +50,7 @@ class CFManagerApp(App):
         yield StatusBar(id="status-bar")
 
     async def on_mount(self) -> None:
+        self.query_one("#sidebar-list").focus()
         if self.cf_client is None:
             # No token configured — show first-run setup dialog
             async def handle_token(token: str | None) -> None:
@@ -64,28 +68,57 @@ class CFManagerApp(App):
     async def load_account_details(self) -> None:
         status_bar = self.query_one(StatusBar)
         try:
-            account_id = await self.cf_client.get_async_account_id()
-            account_name = self.cf_client._account_name
-            status_bar.update_status(account_name=account_name, status="Connected")
+            await self.cf_client.get_async_account_id()
+            status_bar.update_status(account_name=self.cf_client.account_name, status="Connected")
         except Exception as e:
-            status_bar.update_status(account_name="Unknown", status=f"Error: {e}")
+            status_bar.update_status(account_name="Unknown", status=f"Error: {format_error(e)}")
+
+    _CACHE_TTL = 60.0
+    _SCREEN_REFRESH: dict[str, str] = {
+        "zones": "refresh_zones",
+        "dns": "refresh_records",
+        "ssl": "refresh_data",
+        "r2": "refresh_data",
+        "pages": "refresh_data",
+        "lb": "refresh_data",
+    }
 
     def navigate_to(self, screen_name: str) -> None:
         switcher = self.query_one("#content-switcher")
         switcher.current = screen_name
 
-        if screen_name == "zones":
-            self.run_worker(self.query_one("#zones").refresh_zones())
-        elif screen_name == "dns":
-            self.run_worker(self.query_one("#dns").refresh_records())
-        elif screen_name == "ssl":
-            self.run_worker(self.query_one("#ssl").refresh_data())
-        elif screen_name == "r2":
-            self.run_worker(self.query_one("#r2").refresh_data())
-        elif screen_name == "pages":
-            self.run_worker(self.query_one("#pages").refresh_data())
-        elif screen_name == "lb":
-            self.run_worker(self.query_one("#lb").refresh_data())
+        refresh_method = self._SCREEN_REFRESH.get(screen_name)
+        if refresh_method:
+            v = self.query_one(f"#{screen_name}")
+            if time.monotonic() - v._last_loaded > self._CACHE_TTL:
+                v.run_worker(getattr(v, refresh_method)(), exclusive=True)
+
+    def on_key(self, event) -> None:
+        if len(self.screen_stack) > 1:
+            return
+        from textual.widgets import Input
+        focused = self.focused
+        sidebar_list = self.query_one("#sidebar-list")
+
+        if event.key == "right" and focused is sidebar_list:
+            highlighted = sidebar_list.highlighted_child
+            if highlighted is not None:
+                screen_name = Sidebar.SCREEN_MAP.get(highlighted.id)
+                if screen_name:
+                    self.navigate_to(screen_name)
+                    self.call_after_refresh(self._focus_active_table)
+        elif event.key == "left" and focused is not sidebar_list and not isinstance(focused, Input):
+            if getattr(focused, "scroll_x", 0) > 0:
+                return  # widget is scrolled right; let it scroll back left
+            sidebar_list.focus()
+
+    def _focus_active_table(self) -> None:
+        from textual.widgets import DataTable
+        current = self.query_one("#content-switcher").current
+        try:
+            self.query_one(f"#{current}").query_one(DataTable).focus()
+        except Exception:
+            pass
 
     def on_sidebar_selected(self, message: Sidebar.Selected) -> None:
         self.navigate_to(message.screen_name)
@@ -96,10 +129,25 @@ class CFManagerApp(App):
 
 
 def run_tui_app():
-    from cfmanager.core.logger import setup_logger
+    import sys
+    from cfmanager.core.logger import setup_logger, get_logger
+
     config = Config()
-    setup_logger(config.log_level, config.log_file)
+    setup_logger(config.log_level, config.log_file, dev_mode=config.dev_mode, console=False)
+    logger = get_logger()
+
+    if config.dev_mode:
+        print(f"[cfm dev] debug log → {config.log_file}", file=sys.stderr)
+
+    # Route uncaught exceptions to the log file so TUI crashes aren't silent
+    _original_excepthook = sys.excepthook
+
+    def _crash_logger(exc_type, exc_value, exc_tb):
+        logger.critical("Uncaught exception — app crashed", exc_info=(exc_type, exc_value, exc_tb))
+        _original_excepthook(exc_type, exc_value, exc_tb)
+
+    sys.excepthook = _crash_logger
 
     # Pass client=None if no token — app handles it with setup dialog
-    client = CloudflareClient(api_token=config.api_token) if config.api_token else None
+    client = CloudflareClient(api_token=config.api_token, account_id=config.account_id) if config.api_token else None
     CFManagerApp(config, client).run()

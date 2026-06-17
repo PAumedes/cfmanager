@@ -5,6 +5,15 @@ from textual.widgets import Label, ListItem, ListView
 
 
 class Sidebar(Widget):
+    SCREEN_MAP = {
+        "item-dashboard": "dashboard",
+        "item-zones": "zones",
+        "item-ssl": "ssl",
+        "item-r2": "r2",
+        "item-pages": "pages",
+        "item-lb": "lb",
+    }
+
     class Selected(Message):
         def __init__(self, screen_name: str) -> None:
             self.screen_name = screen_name
@@ -24,14 +33,6 @@ class Sidebar(Widget):
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         item_id = event.item.id
-        screen_map = {
-            "item-dashboard": "dashboard",
-            "item-zones": "zones",
-            "item-ssl": "ssl",
-            "item-r2": "r2",
-            "item-pages": "pages",
-            "item-lb": "lb"
-        }
-        screen_name = screen_map.get(item_id)
+        screen_name = self.SCREEN_MAP.get(item_id)
         if screen_name:
             self.post_message(self.Selected(screen_name))

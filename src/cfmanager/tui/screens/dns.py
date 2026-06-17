@@ -1,3 +1,4 @@
+import time
 from typing import Optional
 
 from textual.app import ComposeResult
@@ -5,9 +6,10 @@ from textual.containers import Container
 from textual.widget import Widget
 from textual.widgets import DataTable, Label
 
+from cfmanager.core.errors import format_error
 from cfmanager.core.logger import get_logger
 from cfmanager.services.dns import DNSService
-from cfmanager.tui.widgets.dialogs import ConfirmDialog, DNSFormDialog
+from cfmanager.tui.widgets.dialogs import ConfirmDialog, DNSFormDialog, DNSViewDialog
 logger = get_logger()
 
 
@@ -15,13 +17,18 @@ class DNSView(Widget):
     def __init__(self, **kwargs) -> None:
         self.zone_id: Optional[str] = None
         self.zone_name: Optional[str] = None
+        self._last_loaded: float = 0.0
         super().__init__(**kwargs)
 
     def compose(self) -> ComposeResult:
         with Container(id="main-content"):
             self.title_label = Label("🔑 DNS Records", id="screen-title")
             yield self.title_label
-            yield Label("Press [bold]a[/bold] to add, [bold]e[/bold] to edit, [bold]d[/bold] to delete, [bold]r[/bold] to refresh.")
+            yield Label(
+                "Press [bold]Enter[/bold] to view, [bold]a[/bold] to add, [bold]e[/bold] to edit, "
+                "[bold]d[/bold] to delete, [bold]r[/bold] to refresh, "
+                "[bold]Esc[/bold] to go back."
+            )
             yield DataTable(id="dns-table")
 
     async def on_mount(self) -> None:
@@ -33,7 +40,8 @@ class DNSView(Widget):
         self.zone_id = zone_id
         self.zone_name = zone_name
         self.title_label.update(f"🔑 DNS Records for {self.zone_name}")
-        self.run_worker(self.refresh_records())
+        self.run_worker(self.refresh_records(), exclusive=True)
+        self.query_one(DataTable).focus()
 
     async def refresh_records(self) -> None:
         if not self.zone_id:
@@ -56,16 +64,21 @@ class DNSView(Widget):
                     "Yes" if record["proxied"] else "No",
                     key=record["id"]
                 )
+            self._last_loaded = time.monotonic()
         except Exception as e:
             logger.exception("Failed to load DNS records in TUI")
-            self.app.notify(f"Error loading DNS records: {e}", severity="error")
+            self.app.notify(f"Could not load DNS records: {format_error(e)}", severity="error")
 
     async def on_key(self, event) -> None:
+        if event.key == "escape":
+            self.app.navigate_to("zones")
+            return
+
         if not self.zone_id:
             return
 
         table = self.query_one(DataTable)
-        
+
         if event.key == "r":
             await self.refresh_records()
             return
@@ -86,7 +99,7 @@ class DNSView(Widget):
                         self.app.notify("Successfully added DNS record", severity="success")
                         await self.refresh_records()
                     except Exception as e:
-                        self.app.notify(f"Add failed: {e}", severity="error")
+                        self.app.notify(f"Add failed: {format_error(e)}", severity="error")
 
             self.app.push_screen(DNSFormDialog(), on_dns_add)
             return
@@ -94,14 +107,14 @@ class DNSView(Widget):
         if table.cursor_row is None or table.row_count == 0:
             return
 
-        row_key = table.row_keys[table.cursor_row]
+        row_key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key
         row_values = table.get_row(row_key)
-        
+
         record_id = row_values[0]
         record_name = row_values[1]
         record_type = row_values[2]
         record_content = row_values[3]
-        record_ttl = int(row_values[4])
+        record_ttl = int(float(row_values[4]))
         record_proxied = row_values[5] == "Yes"
 
         if event.key == "d":
@@ -113,7 +126,7 @@ class DNSView(Widget):
                         self.app.notify("Deleted DNS record", severity="success")
                         await self.refresh_records()
                     except Exception as e:
-                        self.app.notify(f"Delete failed: {e}", severity="error")
+                        self.app.notify(f"Delete failed: {format_error(e)}", severity="error")
 
             self.app.push_screen(
                 ConfirmDialog(f"Are you sure you want to delete record {record_name} ({record_type})?"),
@@ -146,6 +159,18 @@ class DNSView(Widget):
                         self.app.notify("Successfully updated DNS record", severity="success")
                         await self.refresh_records()
                     except Exception as e:
-                        self.app.notify(f"Update failed: {e}", severity="error")
+                        self.app.notify(f"Update failed: {format_error(e)}", severity="error")
 
             self.app.push_screen(DNSFormDialog(current_record), on_dns_edit)
+
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        row_values = self.query_one(DataTable).get_row(event.row_key)
+        current_record = {
+            "id": row_values[0],
+            "name": row_values[1],
+            "type": row_values[2],
+            "content": row_values[3],
+            "ttl": int(float(row_values[4])),
+            "proxied": row_values[5] == "Yes",
+        }
+        self.app.push_screen(DNSViewDialog(current_record))

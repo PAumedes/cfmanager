@@ -17,6 +17,15 @@ Footer {
     color: #A0AEC0;
 }
 
+/* Main layout — fill space between Header and StatusBar */
+Horizontal {
+    height: 1fr;
+}
+
+ContentSwitcher {
+    height: 100%;
+}
+
 /* Sidebar navigation styling */
 Sidebar {
     width: 25;
@@ -141,4 +150,55 @@ Input:focus {
     text-style: bold;
     color: #F6821F;
     margin-bottom: 1;
+}
+
+/* DNSFormDialog layout fixes */
+DNSFormDialog Select {
+    margin: 1 0;
+    height: 3;
+}
+
+DNSFormDialog #dns-name-label {
+    margin-top: 1;
+}
+
+DNSFormDialog Checkbox {
+    padding: 0;
+    margin: 1 0;
+}
+
+DNSFormDialog .dialog-buttons {
+    margin-top: 1;
+    width: 100%;
+}
+
+DNSFormDialog .dialog-buttons Button {
+    width: 1fr;
+    margin: 0;
+}
+
+/* DNSViewDialog read-only fields */
+DNSViewDialog .view-field {
+    color: #A0AEC0;
+    margin-top: 1;
+}
+
+DNSViewDialog .view-value {
+    background: #1E293B;
+    border: solid #2D3748;
+    padding: 0 1;
+    height: 3;
+    content-align: left middle;
+    width: 100%;
+    color: #E2E8F0;
+}
+
+DNSViewDialog .dialog-buttons {
+    margin-top: 1;
+    width: 100%;
+}
+
+DNSViewDialog .dialog-buttons Button {
+    width: 1fr;
+    margin: 0;
 }

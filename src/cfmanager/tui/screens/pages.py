@@ -1,3 +1,4 @@
+import time
 from typing import Optional
 
 from textual.app import ComposeResult
@@ -5,6 +6,7 @@ from textual.containers import Container
 from textual.widget import Widget
 from textual.widgets import DataTable, Label
 
+from cfmanager.core.errors import format_error
 from cfmanager.core.logger import get_logger
 from cfmanager.services.pages import PagesService
 logger = get_logger()
@@ -13,6 +15,7 @@ logger = get_logger()
 class PagesView(Widget):
     def __init__(self, **kwargs) -> None:
         self.selected_project: Optional[str] = None
+        self._last_loaded: float = 0.0
         super().__init__(**kwargs)
 
     def compose(self) -> ComposeResult:
@@ -30,7 +33,7 @@ class PagesView(Widget):
         table.cursor_type = "row"
         # Start in projects mode
         self._setup_projects_columns(table)
-        self.run_worker(self.refresh_data())
+        self.run_worker(self.refresh_data(), exclusive=True)
 
     def _setup_projects_columns(self, table: DataTable) -> None:
         table.clear(columns=True)
@@ -49,6 +52,7 @@ class PagesView(Widget):
     async def _load_projects(self) -> None:
         table = self.query_one(DataTable)
         self._setup_projects_columns(table)
+        table.focus()
         self.title_label.update("📃 Pages Projects")
         self.hint_label.update(
             "Press [bold]Enter[/bold] to view deployments, [bold]r[/bold] to refresh."
@@ -65,9 +69,10 @@ class PagesView(Widget):
                     str(project.get("created_on", "")),
                     key=project.get("name", ""),
                 )
+            self._last_loaded = time.monotonic()
         except Exception as e:
             logger.exception("Failed to load Pages projects in TUI")
-            self.app.notify(f"Error loading Pages projects: {e}", severity="error")
+            self.app.notify(f"Could not load Pages projects: {format_error(e)}", severity="error")
 
     async def _load_deployments(self, project_name: str) -> None:
         table = self.query_one(DataTable)
@@ -91,11 +96,11 @@ class PagesView(Widget):
                 )
         except Exception as e:
             logger.exception("Failed to load Pages deployments in TUI")
-            self.app.notify(f"Error loading deployments: {e}", severity="error")
+            self.app.notify(f"Could not load deployments: {format_error(e)}", severity="error")
 
     def _go_back_to_projects(self) -> None:
         self.selected_project = None
-        self.run_worker(self.refresh_data())
+        self.run_worker(self.refresh_data(), exclusive=True)
 
     async def on_key(self, event) -> None:
         if event.key == "r":
@@ -111,4 +116,4 @@ class PagesView(Widget):
             # Drill into project deployments
             project_name = event.row_key.value
             self.selected_project = project_name
-            self.run_worker(self.refresh_data())
+            self.run_worker(self.refresh_data(), exclusive=True)

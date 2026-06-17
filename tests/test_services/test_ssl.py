@@ -10,7 +10,7 @@ def test_get_ssl_setting(mock_cloudflare_client):
     mock_ssl = MagicMock()
     mock_ssl.value = "full"
     mock_ssl.enabled_protocols = ["TLSv1.2", "TLSv1.3"]
-    mock_cloudflare_client.sync_client.zones.settings.ssl.get.return_value = mock_ssl
+    mock_cloudflare_client.sync_client.zones.settings.get.return_value = mock_ssl
 
     mock_pack = MagicMock()
     mock_pack.id = "pack_abc"
@@ -28,8 +28,8 @@ def test_get_ssl_setting(mock_cloudflare_client):
     assert result["certificate_packs"][0]["id"] == "pack_abc"
     assert result["certificate_packs"][0]["status"] == "active"
 
-    mock_cloudflare_client.sync_client.zones.settings.ssl.get.assert_called_once_with(
-        zone_id="zone_123"
+    mock_cloudflare_client.sync_client.zones.settings.get.assert_called_once_with(
+        "ssl", zone_id="zone_123"
     )
     mock_cloudflare_client.sync_client.ssl.certificate_packs.list.assert_called_once_with(
         zone_id="zone_123"
@@ -41,14 +41,14 @@ def test_set_ssl_mode(mock_cloudflare_client):
 
     mock_result = MagicMock()
     mock_result.value = "strict"
-    mock_cloudflare_client.sync_client.zones.settings.ssl.edit.return_value = mock_result
+    mock_cloudflare_client.sync_client.zones.settings.edit.return_value = mock_result
 
     result = service.set_ssl_mode("zone_123", "strict")
 
     assert result["zone_id"] == "zone_123"
     assert result["mode"] == "strict"
-    mock_cloudflare_client.sync_client.zones.settings.ssl.edit.assert_called_once_with(
-        zone_id="zone_123", value="strict"
+    mock_cloudflare_client.sync_client.zones.settings.edit.assert_called_once_with(
+        "ssl", zone_id="zone_123", value="strict"
     )
 
 
@@ -64,7 +64,7 @@ def test_set_ssl_mode_invalid(mock_cloudflare_client):
     # Valid modes should not raise
     mock_result = MagicMock()
     mock_result.value = "flexible"
-    mock_cloudflare_client.sync_client.zones.settings.ssl.edit.return_value = mock_result
+    mock_cloudflare_client.sync_client.zones.settings.edit.return_value = mock_result
     for valid_mode in ("off", "flexible", "full", "strict"):
         result = service.set_ssl_mode("zone_123", valid_mode)
         assert result["zone_id"] == "zone_123"
@@ -114,7 +114,7 @@ async def test_get_ssl_setting_async(mock_cloudflare_client):
     mock_ssl = MagicMock()
     mock_ssl.value = "full"
     mock_ssl.enabled_protocols = ["TLSv1.3"]
-    mock_cloudflare_client.async_client.zones.settings.ssl.get = AsyncMock(
+    mock_cloudflare_client.async_client.zones.settings.get = AsyncMock(
         return_value=mock_ssl
     )
 

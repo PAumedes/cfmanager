@@ -8,16 +8,18 @@ from cfmanager.core.exceptions import ConfigError
 class Config:
     def __init__(self, load_env_file: bool = True):
         if load_env_file:
-            # Priority order (lowest → highest, so last wins):
+            # Priority order (lowest → highest):
             # 1. ~/.cfmanager/.env  (user-level, written by `cfm config set-token`)
             # 2. .env in cwd        (project-level override)
-            # 3. environment variable CLOUDFLARE_API_TOKEN (always wins)
+            # 3. environment variable (always wins — load_dotenv never overrides real env vars)
+            # Load cwd first so it is set, then user-level with override=False can't clobber it.
+            load_dotenv()  # cwd .env
             cfmanager_dotenv = Path.home() / ".cfmanager" / ".env"
             if cfmanager_dotenv.exists():
-                load_dotenv(dotenv_path=cfmanager_dotenv)
-            load_dotenv()  # cwd .env is loaded but does not override already-set values
+                load_dotenv(dotenv_path=cfmanager_dotenv)  # fills missing keys only
 
         self.api_token = os.getenv("CLOUDFLARE_API_TOKEN")
+        self.account_id = os.getenv("CLOUDFLARE_ACCOUNT_ID")
         self.log_level = os.getenv("CFM_LOG_LEVEL", "INFO").upper()
         self.r2_access_key_id = os.environ.get("R2_ACCESS_KEY_ID")
         self.r2_secret_access_key = os.environ.get("R2_SECRET_ACCESS_KEY")
@@ -31,6 +33,8 @@ class Config:
             self.log_file = Path(self.log_file)
         else:
             self.log_file = default_log_file
+
+        self.dev_mode = os.getenv("CFM_ENV", "").lower() in ("dev", "development")
 
     @staticmethod
     def config_dir() -> Path:

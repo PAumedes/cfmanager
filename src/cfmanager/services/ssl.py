@@ -24,7 +24,7 @@ class SSLService:
     def get_ssl_setting(self, zone_id: str) -> Dict[str, Any]:
         try:
             logger.debug(f"Getting SSL setting for zone {zone_id}")
-            ssl_setting = self.client.sync_client.zones.settings.ssl.get(zone_id=zone_id)
+            ssl_setting = self.client.sync_client.zones.settings.get("ssl", zone_id=zone_id)
             mode = getattr(ssl_setting, 'value', None)
 
             cert_packs_page = self.client.sync_client.ssl.certificate_packs.list(zone_id=zone_id)
@@ -53,8 +53,8 @@ class SSLService:
         self._validate_ssl_mode(mode)
         try:
             logger.info(f"Setting SSL mode for zone {zone_id} to '{mode}'")
-            result = self.client.sync_client.zones.settings.ssl.edit(
-                zone_id=zone_id, value=mode
+            result = self.client.sync_client.zones.settings.edit(
+                "ssl", zone_id=zone_id, value=mode
             )
             return {
                 "zone_id": zone_id,
@@ -91,7 +91,7 @@ class SSLService:
     async def get_ssl_setting_async(self, zone_id: str) -> Dict[str, Any]:
         try:
             logger.debug(f"Getting SSL setting asynchronously for zone {zone_id}")
-            ssl_setting = await self.client.async_client.zones.settings.ssl.get(zone_id=zone_id)
+            ssl_setting = await self.client.async_client.zones.settings.get("ssl", zone_id=zone_id)
             mode = getattr(ssl_setting, 'value', None)
 
             cert_packs_page = await self.client.async_client.ssl.certificate_packs.list(zone_id=zone_id)
@@ -120,8 +120,8 @@ class SSLService:
         self._validate_ssl_mode(mode)
         try:
             logger.info(f"Setting SSL mode asynchronously for zone {zone_id} to '{mode}'")
-            result = await self.client.async_client.zones.settings.ssl.edit(
-                zone_id=zone_id, value=mode
+            result = await self.client.async_client.zones.settings.edit(
+                "ssl", zone_id=zone_id, value=mode
             )
             return {
                 "zone_id": zone_id,

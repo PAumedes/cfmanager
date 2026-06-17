@@ -36,20 +36,69 @@ def test_create_dns_record_success(mock_cloudflare_client):
     
     result = service.create_dns_record("zone_123", "api", "A", "1.2.3.4", 3600, True)
     assert result["id"] == "rec_1"
+    # TTL is coerced to 1 (Auto) when proxied=True per Cloudflare API requirement
     mock_cloudflare_client.sync_client.dns.records.create.assert_called_once_with(
         zone_id="zone_123",
         name="api",
         type="A",
         content="1.2.3.4",
-        ttl=3600,
+        ttl=1,
         proxied=True
     )
 
+def test_create_dns_record_proxied_coerces_ttl(mock_cloudflare_client):
+    service = DNSService(mock_cloudflare_client)
+
+    mock_record = MagicMock()
+    mock_record.id = "rec_2"
+    mock_record.name = "www.example.com"
+    mock_record.type = "A"
+    mock_record.content = "1.2.3.4"
+    mock_record.ttl = 1
+    mock_record.proxied = True
+    mock_cloudflare_client.sync_client.dns.records.create.return_value = mock_record
+
+    service.create_dns_record("zone_123", "www", "A", "1.2.3.4", ttl=300, proxied=True)
+
+    mock_cloudflare_client.sync_client.dns.records.create.assert_called_once_with(
+        zone_id="zone_123",
+        name="www",
+        type="A",
+        content="1.2.3.4",
+        ttl=1,
+        proxied=True,
+    )
+
+
+def test_create_dns_record_not_proxied_preserves_ttl(mock_cloudflare_client):
+    service = DNSService(mock_cloudflare_client)
+
+    mock_record = MagicMock()
+    mock_record.id = "rec_3"
+    mock_record.name = "mail.example.com"
+    mock_record.type = "A"
+    mock_record.content = "1.2.3.4"
+    mock_record.ttl = 300
+    mock_record.proxied = False
+    mock_cloudflare_client.sync_client.dns.records.create.return_value = mock_record
+
+    service.create_dns_record("zone_123", "mail", "A", "1.2.3.4", ttl=300, proxied=False)
+
+    mock_cloudflare_client.sync_client.dns.records.create.assert_called_once_with(
+        zone_id="zone_123",
+        name="mail",
+        type="A",
+        content="1.2.3.4",
+        ttl=300,
+        proxied=False,
+    )
+
+
 def test_create_dns_record_validation(mock_cloudflare_client):
     service = DNSService(mock_cloudflare_client)
-    
+
     with pytest.raises(ValidationError):
         service.create_dns_record("zone_123", "", "A", "1.2.3.4")
-        
+
     with pytest.raises(ValidationError):
         service.create_dns_record("zone_123", "api", "INVALID_TYPE", "1.2.3.4")

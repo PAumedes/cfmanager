@@ -56,6 +56,8 @@ class DNSService:
         self, zone_id: str, name: str, type: str, content: str, ttl: int = 3600, proxied: bool = False
     ) -> Dict[str, Any]:
         self._validate_record(name, type, content)
+        if proxied:
+            ttl = 1  # Cloudflare requires TTL=1 (Auto) when proxied
         try:
             logger.info(f"Creating {type} record for zone {zone_id}: {name} -> {content}")
             record = self.client.sync_client.dns.records.create(
@@ -90,6 +92,8 @@ class DNSService:
     ) -> Dict[str, Any]:
         try:
             logger.info(f"Editing DNS record {record_id} in zone {zone_id}")
+            if proxied:
+                ttl = 1  # Cloudflare requires TTL=1 (Auto) when proxied
             params = {}
             if name is not None:
                 params["name"] = name
@@ -165,6 +169,8 @@ class DNSService:
         self, zone_id: str, name: str, type: str, content: str, ttl: int = 3600, proxied: bool = False
     ) -> Dict[str, Any]:
         self._validate_record(name, type, content)
+        if proxied:
+            ttl = 1  # Cloudflare requires TTL=1 (Auto) when proxied
         try:
             logger.info(f"Creating {type} record asynchronously for zone {zone_id}: {name} -> {content}")
             record = await self.client.async_client.dns.records.create(
@@ -199,6 +205,8 @@ class DNSService:
     ) -> Dict[str, Any]:
         try:
             logger.info(f"Editing DNS record asynchronously {record_id} in zone {zone_id}")
+            if proxied:
+                ttl = 1  # Cloudflare requires TTL=1 (Auto) when proxied
             params = {}
             if name is not None:
                 params["name"] = name

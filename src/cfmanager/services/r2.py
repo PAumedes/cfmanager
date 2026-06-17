@@ -176,7 +176,7 @@ class R2Service:
             result = await self.client.async_client.r2.buckets.list(account_id=account_id)
             buckets_iter = getattr(result, 'buckets', result)
             results = []
-            async for bucket in buckets_iter:
+            for bucket in buckets_iter:
                 results.append({
                     "name": getattr(bucket, 'name', None),
                     "creation_date": getattr(bucket, 'creation_date', None),

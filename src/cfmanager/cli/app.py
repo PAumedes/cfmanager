@@ -34,8 +34,11 @@ def main(
     config = Config()
     if verbose:
         config.log_level = "DEBUG"
-        
-    setup_logger(config.log_level, config.log_file)
+
+    setup_logger(config.log_level, config.log_file, dev_mode=config.dev_mode)
+
+    if config.dev_mode:
+        typer.secho(f"[cfm dev] debug log → {config.log_file}", fg=typer.colors.CYAN, err=True)
     
     # Skip token validation for `cfm config` subcommands (used to SET the token)
     if ctx.invoked_subcommand != "config":
@@ -45,7 +48,7 @@ def main(
             typer.secho(f"Error: {e}", fg=typer.colors.RED, err=True)
             raise typer.Exit(code=1)
 
-    client = CloudflareClient(api_token=config.api_token) if config.api_token else None
+    client = CloudflareClient(api_token=config.api_token, account_id=config.account_id) if config.api_token else None
 
     ctx.obj["config"] = config
     ctx.obj["client"] = client

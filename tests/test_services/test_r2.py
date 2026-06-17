@@ -88,18 +88,8 @@ async def test_list_buckets_async(mock_cloudflare_client):
     mock_bucket.creation_date = "2024-01-01T00:00:00Z"
     mock_bucket.location = "APAC"
 
-    class AsyncBuckets:
-        def __aiter__(self):
-            return self
-
-        async def __anext__(self):
-            if not hasattr(self, "_done"):
-                self._done = True
-                return mock_bucket
-            raise StopAsyncIteration
-
     mock_result = MagicMock()
-    mock_result.buckets = AsyncBuckets()
+    mock_result.buckets = [mock_bucket]
     mock_cloudflare_client.async_client.r2.buckets.list = AsyncMock(
         return_value=mock_result
     )

@@ -1,3 +1,4 @@
+import time
 from typing import Optional
 
 from textual.app import ComposeResult
@@ -6,6 +7,7 @@ from textual.screen import ModalScreen
 from textual.widget import Widget
 from textual.widgets import Button, DataTable, Label, Select
 
+from cfmanager.core.errors import format_error
 from cfmanager.core.logger import get_logger
 from cfmanager.services.ssl import SSLService
 from cfmanager.services.zones import ZoneService
@@ -46,8 +48,16 @@ class SSLModeDialog(ModalScreen[Optional[str]]):
         else:
             self.dismiss(None)
 
+    def on_key(self, event) -> None:
+        if event.key == "escape":
+            self.dismiss(None)
+
 
 class SSLView(Widget):
+    def __init__(self, **kwargs) -> None:
+        self._last_loaded: float = 0.0
+        super().__init__(**kwargs)
+
     def compose(self) -> ComposeResult:
         with Container(id="main-content"):
             yield Label("🔑 SSL/TLS Settings", id="screen-title")
@@ -61,11 +71,12 @@ class SSLView(Widget):
         table = self.query_one(DataTable)
         table.cursor_type = "row"
         table.add_columns("Zone Name", "SSL Mode", "Cert Count")
-        self.run_worker(self.refresh_data())
+        self.run_worker(self.refresh_data(), exclusive=True)
 
     async def refresh_data(self) -> None:
         table = self.query_one(DataTable)
         table.clear()
+        table.focus()
 
         zone_service = ZoneService(self.app.cf_client)
         ssl_service = SSLService(self.app.cf_client)
@@ -79,13 +90,15 @@ class SSLView(Widget):
                     mode = ssl_info.get("mode", "unknown")
                     cert_packs = ssl_info.get("certificate_packs", [])
                     cert_count = str(len(cert_packs))
-                except Exception:
-                    mode = "error"
-                    cert_count = "?"
+                except Exception as e:
+                    mode = "unavailable"
+                    cert_count = "—"
+                    logger.debug(f"Could not load SSL for {zone_name}: {format_error(e)}")
                 table.add_row(zone_name, mode, cert_count, key=zone_id)
+            self._last_loaded = time.monotonic()
         except Exception as e:
             logger.exception("Failed to load SSL data in TUI")
-            self.app.notify(f"Error loading SSL data: {e}", severity="error")
+            self.app.notify(f"Could not load SSL data: {format_error(e)}", severity="error")
 
     async def on_key(self, event) -> None:
         table = self.query_one(DataTable)
@@ -97,7 +110,7 @@ class SSLView(Widget):
         if table.cursor_row is None or table.row_count == 0:
             return
 
-        row_key = table.row_keys[table.cursor_row]
+        row_key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key
         zone_id = row_key.value
         row_values = table.get_row(row_key)
         zone_name = row_values[0]
@@ -115,7 +128,7 @@ class SSLView(Widget):
                         )
                         await self.refresh_data()
                     except Exception as e:
-                        self.app.notify(f"Failed to set SSL mode: {e}", severity="error")
+                        self.app.notify(f"Failed to set SSL mode: {format_error(e)}", severity="error")
 
             self.app.push_screen(
                 SSLModeDialog(zone_name, current_mode),
@@ -136,7 +149,7 @@ class SSLView(Widget):
                         timeout=10,
                     )
             except Exception as e:
-                self.app.notify(f"Error loading cert packs: {e}", severity="error")
+                self.app.notify(f"Could not load cert packs: {format_error(e)}", severity="error")
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         # Row selection (Enter) is also handled here for drill-down

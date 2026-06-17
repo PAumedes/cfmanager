@@ -1,7 +1,16 @@
 import logging
 from pathlib import Path
 
-def setup_logger(log_level: str = "INFO", log_file: Path = None):
+
+def setup_logger(
+    log_level: str = "INFO",
+    log_file: Path = None,
+    dev_mode: bool = False,
+    console: bool = True,
+) -> logging.Logger:
+    if dev_mode:
+        log_level = "DEBUG"
+
     numeric_level = getattr(logging, log_level.upper(), None)
     if not isinstance(numeric_level, int):
         numeric_level = logging.INFO
@@ -20,23 +29,21 @@ def setup_logger(log_level: str = "INFO", log_file: Path = None):
     logger.setLevel(numeric_level)
 
     if not logger.handlers:
-        # File handler for detailed debug logs
         fh = logging.FileHandler(log_file_path, encoding="utf-8")
         fh.setLevel(logging.DEBUG)
-        formatter = logging.Formatter(
+        fh.setFormatter(logging.Formatter(
             "%(asctime)s [%(levelname)s] %(name)s (%(filename)s:%(lineno)d) - %(message)s"
-        )
-        fh.setFormatter(formatter)
+        ))
         logger.addHandler(fh)
 
-        # Stream handler for console warnings/errors
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.WARNING)
-        ch_formatter = logging.Formatter("[%(levelname)s] %(message)s")
-        ch.setFormatter(ch_formatter)
-        logger.addHandler(ch)
+        if console:
+            ch = logging.StreamHandler()
+            ch.setLevel(logging.DEBUG if dev_mode else logging.WARNING)
+            ch.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))
+            logger.addHandler(ch)
 
     return logger
 
-def get_logger():
+
+def get_logger() -> logging.Logger:
     return logging.getLogger("cfmanager")

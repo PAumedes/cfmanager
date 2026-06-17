@@ -1,3 +1,4 @@
+import time
 from typing import Optional
 
 from textual.app import ComposeResult
@@ -5,6 +6,7 @@ from textual.containers import Container
 from textual.widget import Widget
 from textual.widgets import DataTable, Label
 
+from cfmanager.core.errors import format_error
 from cfmanager.core.logger import get_logger
 from cfmanager.services.loadbalancers import LoadBalancerService
 from cfmanager.services.zones import ZoneService
@@ -22,6 +24,7 @@ class LoadBalancerView(Widget):
         self.selected_zone_id: Optional[str] = None
         self.selected_zone_name: Optional[str] = None
         self.mode: str = MODE_ZONES
+        self._last_loaded: float = 0.0
         super().__init__(**kwargs)
 
     def compose(self) -> ComposeResult:
@@ -39,7 +42,8 @@ class LoadBalancerView(Widget):
         table = self.query_one(DataTable)
         table.cursor_type = "row"
         self._setup_zones_columns(table)
-        self.run_worker(self.refresh_data())
+        table.focus()
+        self.run_worker(self.refresh_data(), exclusive=True)
 
     # --- Column helpers ---
 
@@ -68,6 +72,7 @@ class LoadBalancerView(Widget):
     async def _load_zones(self) -> None:
         table = self.query_one(DataTable)
         self._setup_zones_columns(table)
+        table.focus()
         self.title_label.update("⚖️ Load Balancers — Select a Zone")
         self.hint_label.update(
             "Press [bold]Enter[/bold] to view load balancers for a zone, "
@@ -84,13 +89,15 @@ class LoadBalancerView(Widget):
                     zone.get("status", ""),
                     key=zone["id"],
                 )
+            self._last_loaded = time.monotonic()
         except Exception as e:
             logger.exception("Failed to load zones for LB view in TUI")
-            self.app.notify(f"Error loading zones: {e}", severity="error")
+            self.app.notify(f"Could not load zones: {format_error(e)}", severity="error")
 
     async def _load_lbs(self) -> None:
         table = self.query_one(DataTable)
         self._setup_lbs_columns(table)
+        table.focus()
         self.title_label.update(f"⚖️ Load Balancers — {self.selected_zone_name}")
         self.hint_label.update(
             "Press [bold]d[/bold] to delete, [bold]p[/bold] for pools, "
@@ -111,11 +118,12 @@ class LoadBalancerView(Widget):
                 )
         except Exception as e:
             logger.exception("Failed to load load balancers in TUI")
-            self.app.notify(f"Error loading load balancers: {e}", severity="error")
+            self.app.notify(f"Could not load load balancers: {format_error(e)}", severity="error")
 
     async def _load_pools(self) -> None:
         table = self.query_one(DataTable)
         self._setup_pools_columns(table)
+        table.focus()
         self.title_label.update("⚖️ Load Balancer Pools")
         self.hint_label.update(
             "Press [bold]b[/bold] to go back, [bold]r[/bold] to refresh."
@@ -134,7 +142,7 @@ class LoadBalancerView(Widget):
                 )
         except Exception as e:
             logger.exception("Failed to load LB pools in TUI")
-            self.app.notify(f"Error loading pools: {e}", severity="error")
+            self.app.notify(f"Could not load pools: {format_error(e)}", severity="error")
 
     # --- Navigation helpers ---
 
@@ -142,11 +150,11 @@ class LoadBalancerView(Widget):
         self.selected_zone_id = None
         self.selected_zone_name = None
         self.mode = MODE_ZONES
-        self.run_worker(self.refresh_data())
+        self.run_worker(self.refresh_data(), exclusive=True)
 
     def _go_to_pools(self) -> None:
         self.mode = MODE_POOLS
-        self.run_worker(self.refresh_data())
+        self.run_worker(self.refresh_data(), exclusive=True)
 
     # --- Key handling ---
 
@@ -167,7 +175,7 @@ class LoadBalancerView(Widget):
         if event.key == "d" and self.mode == MODE_LBS:
             if table.cursor_row is None or table.row_count == 0:
                 return
-            row_key = table.row_keys[table.cursor_row]
+            row_key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key
             lb_id = row_key.value
             row_values = table.get_row(row_key)
             lb_name = row_values[1]
@@ -184,7 +192,7 @@ class LoadBalancerView(Widget):
                         )
                         await self.refresh_data()
                     except Exception as e:
-                        self.app.notify(f"Delete failed: {e}", severity="error")
+                        self.app.notify(f"Delete failed: {format_error(e)}", severity="error")
 
             self.app.push_screen(
                 ConfirmDialog(f"Delete load balancer '{lb_name}'?"),
@@ -199,4 +207,4 @@ class LoadBalancerView(Widget):
             self.selected_zone_id = zone_id
             self.selected_zone_name = zone_name
             self.mode = MODE_LBS
-            self.run_worker(self.refresh_data())
+            self.run_worker(self.refresh_data(), exclusive=True)

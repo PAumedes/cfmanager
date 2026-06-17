@@ -1,3 +1,4 @@
+import time
 from typing import Optional
 
 from textual.app import ComposeResult
@@ -6,6 +7,7 @@ from textual.screen import ModalScreen
 from textual.widget import Widget
 from textual.widgets import Button, DataTable, Input, Label
 
+from cfmanager.core.errors import format_error
 from cfmanager.core.logger import get_logger
 from cfmanager.services.r2 import R2Service
 from cfmanager.tui.widgets.dialogs import ConfirmDialog
@@ -36,8 +38,16 @@ class BucketFormDialog(ModalScreen[Optional[dict]]):
         else:
             self.dismiss(None)
 
+    def on_key(self, event) -> None:
+        if event.key == "escape":
+            self.dismiss(None)
+
 
 class R2View(Widget):
+    def __init__(self, **kwargs) -> None:
+        self._last_loaded: float = 0.0
+        super().__init__(**kwargs)
+
     def compose(self) -> ComposeResult:
         with Container(id="main-content"):
             yield Label("📦 R2 Storage", id="screen-title")
@@ -51,11 +61,12 @@ class R2View(Widget):
         table = self.query_one(DataTable)
         table.cursor_type = "row"
         table.add_columns("Bucket Name", "Creation Date", "Location")
-        self.run_worker(self.refresh_data())
+        self.run_worker(self.refresh_data(), exclusive=True)
 
     async def refresh_data(self) -> None:
         table = self.query_one(DataTable)
         table.clear()
+        table.focus()
 
         r2_service = R2Service(self.app.cf_client)
         try:
@@ -67,9 +78,10 @@ class R2View(Widget):
                     bucket.get("location", ""),
                     key=bucket.get("name", ""),
                 )
+            self._last_loaded = time.monotonic()
         except Exception as e:
             logger.exception("Failed to load R2 buckets in TUI")
-            self.app.notify(f"Error loading R2 buckets: {e}", severity="error")
+            self.app.notify(f"Could not load R2 buckets: {format_error(e)}", severity="error")
 
     async def on_key(self, event) -> None:
         table = self.query_one(DataTable)
@@ -93,7 +105,7 @@ class R2View(Widget):
                         )
                         await self.refresh_data()
                     except Exception as e:
-                        self.app.notify(f"Failed to create bucket: {e}", severity="error")
+                        self.app.notify(f"Failed to create bucket: {format_error(e)}", severity="error")
 
             self.app.push_screen(BucketFormDialog(), on_bucket_create)
             return
@@ -101,7 +113,7 @@ class R2View(Widget):
         if table.cursor_row is None or table.row_count == 0:
             return
 
-        row_key = table.row_keys[table.cursor_row]
+        row_key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key
         bucket_name = row_key.value
 
         if event.key == "d":
@@ -115,7 +127,7 @@ class R2View(Widget):
                         )
                         await self.refresh_data()
                     except Exception as e:
-                        self.app.notify(f"Delete failed: {e}", severity="error")
+                        self.app.notify(f"Delete failed: {format_error(e)}", severity="error")
 
             self.app.push_screen(
                 ConfirmDialog(f"Delete bucket '{bucket_name}'? This cannot be undone."),

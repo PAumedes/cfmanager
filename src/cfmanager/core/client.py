@@ -8,12 +8,16 @@ from cfmanager.core.logger import get_logger
 logger = get_logger()
 
 class CloudflareClient:
-    def __init__(self, api_token: str):
+    def __init__(self, api_token: str, account_id: Optional[str] = None):
         self.api_token = api_token
         self._sync_client: Optional[Cloudflare] = None
         self._async_client: Optional[AsyncCloudflare] = None
-        self._account_id: Optional[str] = None
+        self._account_id: Optional[str] = account_id
         self._account_name: Optional[str] = None
+
+    @property
+    def account_name(self) -> Optional[str]:
+        return self._account_name
 
     @property
     def sync_client(self) -> Cloudflare:

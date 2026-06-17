@@ -30,6 +30,7 @@ def show_config():
     typer.echo(f"R2_ACCESS_KEY_ID      {'(set)' if config.r2_access_key_id else '(not set)'}")
     typer.echo(f"CFM_LOG_LEVEL         {config.log_level}")
     typer.echo(f"CFM_LOG_FILE          {config.log_file}")
+    typer.echo(f"CFM_ENV               {'dev (DEBUG)' if config.dev_mode else 'production'}")
 
 
 @app.command(name="path", help="Show the path to the cfm config file.")
