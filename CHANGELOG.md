@@ -4,6 +4,11 @@ All notable changes to CFManager are documented here.
 
 ---
 
+## [1.0.0] - 2026-06-18
+
+- feat: Phase 5 — Workers/KV, Firewall/WAF, Page Rules, Tunnels, Email Routing, Analytics, named profiles, watch mode, R2 object browser, shell completion, @cf_api decorator
+- feat: Phase 4 — DNS import/export, zone backup/restore, cross-zone search, cache purge, typed-name confirmation
+
 ## [0.4.0] - 2026-06-17
 
 - feat: TUI improvements and code review fixes
