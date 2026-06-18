@@ -1,4 +1,5 @@
 import json
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -14,20 +15,32 @@ app = typer.Typer(help="Manage Cloudflare Zones (Domains)", no_args_is_help=True
 @app.command(name="list", help="List all Cloudflare zones.")
 def list_zones(
     ctx: typer.Context,
-    name: Optional[str] = typer.Option(None, "--name", "-n", help="Filter zones by name.")
+    name: Optional[str] = typer.Option(None, "--name", "-n", help="Filter zones by name."),
+    watch: Optional[int] = typer.Option(None, "--watch", "-w", help="Refresh every N seconds. Press Ctrl+C to stop."),
 ):
     client = ctx.obj["client"]
     output_format = ctx.obj["output_format"]
-    
     zone_service = ZoneService(client)
-    try:
+
+    def _run_once():
         zones = zone_service.list_zones(name=name)
         formatter = OutputFormatter(output_format)
         formatter.format(
             zones,
             headers=["ID", "Name", "Status", "Paused", "Type"],
-            keys=["id", "name", "status", "paused", "type"]
+            keys=["id", "name", "status", "paused", "type"],
         )
+
+    try:
+        if watch is None:
+            _run_once()
+        else:
+            while True:
+                typer.echo("\033[2J\033[H", nl=False)
+                _run_once()
+                time.sleep(watch)
+    except KeyboardInterrupt:
+        pass
     except CFManagerError as e:
         typer.secho(f"Error: {e}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)

@@ -1,12 +1,13 @@
 import os
 from pathlib import Path
+from typing import Optional
 
 from dotenv import load_dotenv
 
 from cfmanager.core.exceptions import ConfigError
 
 class Config:
-    def __init__(self, load_env_file: bool = True):
+    def __init__(self, load_env_file: bool = True, profile: Optional[str] = None, profiles_file=None):
         if load_env_file:
             # Priority order (lowest → highest):
             # 1. ~/.cfmanager/.env  (user-level, written by `cfm config set-token`)
@@ -20,6 +21,13 @@ class Config:
 
         self.api_token = os.getenv("CLOUDFLARE_API_TOKEN")
         self.account_id = os.getenv("CLOUDFLARE_ACCOUNT_ID")
+
+        if profile:
+            from cfmanager.core.profiles import ProfileManager
+            pm = ProfileManager(profiles_file=profiles_file)
+            p = pm.get(profile)
+            self.api_token = p["api_token"]
+            self.account_id = p.get("account_id") or self.account_id
         self.log_level = os.getenv("CFM_LOG_LEVEL", "INFO").upper()
         self.r2_access_key_id = os.environ.get("R2_ACCESS_KEY_ID")
         self.r2_secret_access_key = os.environ.get("R2_SECRET_ACCESS_KEY")

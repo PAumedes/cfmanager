@@ -24,14 +24,15 @@ def main(
     ctx: typer.Context,
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose debug logging."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table, json, csv."),
+    profile: Optional[str] = typer.Option(None, "--profile", "-p", help="Use a named credential profile."),
     version: Optional[bool] = typer.Option(
         None, "--version", callback=version_callback, is_eager=True, help="Show version and exit."
     )
 ):
     ctx.ensure_object(dict)
-    
+
     # Load config
-    config = Config()
+    config = Config(profile=profile)
     if verbose:
         config.log_level = "DEBUG"
 
@@ -65,9 +66,20 @@ from cfmanager.cli import zones, dns
 app.add_typer(zones.app, name="zones")
 app.add_typer(dns.app, name="dns")
 
-from cfmanager.cli import ssl, r2, pages, loadbalancers, config as config_cli
+from cfmanager.cli import (
+    ssl, r2, pages, loadbalancers, config as config_cli, completion,
+    workers, kv, firewall, page_rules, tunnels, email_routing, analytics,
+)
 app.add_typer(ssl.app, name="ssl")
 app.add_typer(r2.app, name="r2")
 app.add_typer(pages.app, name="pages")
 app.add_typer(loadbalancers.app, name="lb")
 app.add_typer(config_cli.app, name="config")
+app.add_typer(completion.app, name="completion")
+app.add_typer(workers.app, name="workers")
+app.add_typer(kv.app, name="kv")
+app.add_typer(firewall.app, name="firewall")
+app.add_typer(page_rules.app, name="pagerules")
+app.add_typer(tunnels.app, name="tunnels")
+app.add_typer(email_routing.app, name="email")
+app.add_typer(analytics.app, name="analytics")

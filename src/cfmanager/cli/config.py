@@ -1,8 +1,14 @@
+from typing import Optional
+
 import typer
 
 from cfmanager.core.config import Config
+from cfmanager.core.exceptions import CFManagerError
+from cfmanager.core.profiles import ProfileManager, ProfileError
 
 app = typer.Typer(help="Manage cfm configuration.", no_args_is_help=True)
+profiles_app = typer.Typer(help="Manage named credential profiles.", no_args_is_help=True)
+app.add_typer(profiles_app, name="profiles")
 
 
 @app.command(name="set-token", help="Save your Cloudflare API token to ~/.cfmanager/.env")
@@ -41,3 +47,47 @@ def config_path():
         typer.secho(" (exists)", fg=typer.colors.GREEN)
     else:
         typer.secho(" (not created yet — run 'cfm config set-token' to create it)", fg=typer.colors.YELLOW)
+
+
+# ── profiles sub-commands ─────────────────────────────────────────────────────
+
+@profiles_app.command(name="list", help="List all saved profiles.")
+def profiles_list():
+    pm = ProfileManager()
+    all_profiles = pm.list_profiles()
+    if not all_profiles:
+        typer.echo("No profiles saved. Use: cfm config profiles add <name> <token>")
+        return
+    for name, data in all_profiles.items():
+        token = data.get("api_token", "")
+        masked = token[:6] + "…" + token[-4:] if len(token) > 10 else "****"
+        account = data.get("account_id") or "(auto)"
+        typer.echo(f"  {name:<20} token={masked}  account={account}")
+
+
+@profiles_app.command(name="add", help="Add or update a named profile.")
+def profiles_add(
+    name: str = typer.Argument(..., help="Profile name."),
+    token: str = typer.Argument(..., help="Cloudflare API token for this profile."),
+    account_id: Optional[str] = typer.Option(None, "--account-id", help="Pin a specific account ID."),
+):
+    try:
+        pm = ProfileManager()
+        pm.add(name, api_token=token, account_id=account_id)
+        typer.secho(f"Profile '{name}' saved.", fg=typer.colors.GREEN)
+    except CFManagerError as e:
+        typer.secho(f"Error: {e}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+
+@profiles_app.command(name="delete", help="Delete a named profile.")
+def profiles_delete(
+    name: str = typer.Argument(..., help="Profile name to delete."),
+):
+    try:
+        pm = ProfileManager()
+        pm.delete(name)
+        typer.secho(f"Profile '{name}' deleted.", fg=typer.colors.GREEN)
+    except ProfileError as e:
+        typer.secho(f"Error: {e}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)

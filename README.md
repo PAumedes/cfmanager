@@ -23,12 +23,22 @@ CFManager (`cfm`) is a terminal-based Cloudflare management tool that provides b
 | **Cross-zone DNS search** (`dns find`) | ✅ | — |
 | **Zone Backup & Restore** (JSON/YAML GitOps export) | ✅ | — |
 | **SSL/TLS Settings** | ✅ | ✅ |
-| **R2 Storage Buckets & Objects** | ✅ | ✅ |
+| **R2 Storage Buckets** | ✅ | ✅ |
+| **R2 Object Browser** | ✅ | ✅ |
+| **Workers Scripts & Routes** | ✅ | — |
+| **KV Namespaces** | ✅ | — |
+| **Firewall / WAF** (IP access rules + WAF packages) | ✅ | — |
+| **Page Rules** | ✅ | — |
+| **Cloudflare Tunnels** (list + inspect) | ✅ | — |
+| **Email Routing** (status, rules, addresses) | ✅ | — |
+| **Analytics** (R2 usage + zone summary) | ✅ | — |
 | **Pages Projects & Deployments** | ✅ | ✅ |
 | **Load Balancers & Pools** | ✅ | ✅ |
 | **Cache Purge** (all/files/tags/hosts/prefixes) | ✅ | — |
+| **Named Credential Profiles** (`--profile`) | ✅ | — |
+| **Watch Mode** (`--watch N`) for zones & DNS | ✅ | — |
 | **Multiple Output Formats** (table/json/csv) | ✅ | — |
-| **Shell Completion** (`--install-completion`) | ✅ | — |
+| **Shell Completion** (`cfm completion install`) | ✅ | — |
 | **Command Palette** (Ctrl+P) | — | ✅ |
 | **Inline Editing** | — | ✅ |
 | **Real-time Status Indicators** | — | ✅ |
@@ -104,13 +114,19 @@ export CLOUDFLARE_API_TOKEN=your_token_here
 ### Global Options
 
 ```bash
-cfm --help                  # Show all commands
-cfm --version               # Show version
-cfm -v <command>            # Verbose mode (debug logging)
-cfm -o json <command>       # JSON output
-cfm -o csv <command>        # CSV output
-cfm --install-completion    # Install shell completion (bash/zsh/fish)
-cfm --show-completion       # Print completion script to stdout
+cfm --help                     # Show all commands
+cfm --version                  # Show version
+cfm -v <command>               # Verbose mode (debug logging)
+cfm -o json <command>          # JSON output
+cfm -o csv <command>           # CSV output
+cfm --profile <name> <command> # Use a named credential profile
+```
+
+### Shell Completion
+
+```bash
+cfm completion install   # Install completion for current shell (bash/zsh/fish)
+cfm completion show      # Print the completion script to stdout
 ```
 
 ### Zones / Domains
@@ -118,6 +134,7 @@ cfm --show-completion       # Print completion script to stdout
 ```bash
 cfm zones list
 cfm zones list --name "example.com"
+cfm zones list --watch 10        # refresh every 10 seconds
 cfm zones get <zone-id>
 
 # Delete — use --confirm-name to require typing the zone name (safer)
@@ -152,6 +169,7 @@ The backup file captures DNS records and the SSL mode, making it easy to version
 ```bash
 cfm dns list <zone-id>
 cfm dns list <zone-id> --type A
+cfm dns list <zone-id> --watch 5   # live-refresh every 5 seconds
 
 cfm dns create <zone-id> \
   --name "api" --type A --content "192.0.2.1" --ttl 3600 --proxied
@@ -191,6 +209,67 @@ www.example.com,CNAME,example.com,1,true,CDN edge
 ```bash
 cfm dns find api.example.com          # search all zones
 cfm dns find api.example.com --type A # filter by type
+```
+
+### Workers & KV
+
+```bash
+# Workers scripts
+cfm workers list
+cfm workers routes <zone-id>
+cfm workers delete <script-name> --yes
+
+# KV namespaces
+cfm kv list
+cfm kv create MY_NAMESPACE
+cfm kv delete <namespace-id> --yes
+```
+
+### Firewall / WAF
+
+```bash
+# IP access rules
+cfm firewall rules <zone-id>
+cfm firewall rules-create <zone-id> --mode block --target ip --value 1.2.3.4
+cfm firewall rules-delete <zone-id> <rule-id> --yes
+
+# WAF packages
+cfm firewall waf <zone-id>
+```
+
+Valid modes: `block`, `challenge`, `js_challenge`, `managed_challenge`, `whitelist`, `allow`.
+Valid targets: `ip`, `ip_range`, `country`, `asn`.
+
+### Page Rules
+
+```bash
+cfm pagerules list <zone-id>
+cfm pagerules get <zone-id> <rule-id>
+cfm pagerules delete <zone-id> <rule-id> --yes
+```
+
+### Cloudflare Tunnels
+
+```bash
+cfm tunnels list
+cfm tunnels get <tunnel-id>
+```
+
+### Email Routing
+
+```bash
+cfm email status <zone-id>
+cfm email enable <zone-id>
+cfm email disable <zone-id>
+cfm email rules <zone-id>
+cfm email addresses          # account-level destination addresses
+```
+
+### Analytics
+
+```bash
+cfm analytics r2      # R2 bucket count and list
+cfm analytics zones   # zone count, active/paused breakdown
 ```
 
 ### SSL/TLS
@@ -237,12 +316,21 @@ cfm lb pools health <pool-id>
 cfm lb delete <zone-id> <lb-id> --yes
 ```
 
-### Config
+### Config & Profiles
 
 ```bash
 cfm config set-token TOKEN   # Save token to ~/.cfmanager/.env
 cfm config show              # Show current config (token masked)
 cfm config path              # Show config file location
+
+# Named credential profiles (stored in ~/.cfmanager/profiles.json)
+cfm config profiles list
+cfm config profiles add prod  <token> [--account-id <id>]
+cfm config profiles delete staging
+
+# Use a profile for any command
+cfm --profile prod zones list
+cfm --profile staging dns list <zone-id>
 ```
 
 ## TUI
@@ -400,8 +488,9 @@ Key design principles:
 - [x] Phase 1: Core foundation + Zones + DNS (CLI & TUI)
 - [x] Phase 2: SSL/TLS + R2 Storage + Pages (CLI & TUI)
 - [x] Phase 3: Load Balancers + Windows .exe + Command Palette
-- [x] Phase 4: Bulk DNS import/export, zone backup/restore, cross-zone search, cache purge by tag/host/prefix, typed-name confirmation
-- [ ] Future: Multi-account profiles, Workers & KV management, Firewall/WAF rules, Cloudflare Tunnels, Email Routing, Analytics
+- [x] Phase 4: Bulk DNS import/export, zone backup/restore, cross-zone search, cache purge, typed-name confirmation
+- [x] Phase 5: Workers & KV, Firewall/WAF, Page Rules, Cloudflare Tunnels, Email Routing, Analytics, named profiles, watch mode, R2 object browser in TUI, shell completion installer, `@cf_api` error decorator
+- [ ] Future: Workers KV key/value browser, TUI screens for Workers/Firewall/Tunnels, Firewall Rules v2 (rulesets), Watch mode in TUI panels
 
 ## Contributing
 

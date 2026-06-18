@@ -224,6 +224,16 @@ class R2Service:
             logger.exception(f"Failed to delete R2 bucket '{name}' asynchronously")
             raise APIError(f"Cloudflare API error deleting R2 bucket: {str(e)}") from e
 
+    async def list_objects_async(
+        self, bucket_name: str, prefix: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        import asyncio
+        return await asyncio.to_thread(self.list_objects, bucket_name, prefix)
+
+    async def delete_object_async(self, bucket_name: str, key: str) -> str:
+        import asyncio
+        return await asyncio.to_thread(self.delete_object, bucket_name, key)
+
     async def get_bucket_usage_async(self, name: str) -> Dict[str, Any]:
         try:
             account_id = await self.client.get_async_account_id()

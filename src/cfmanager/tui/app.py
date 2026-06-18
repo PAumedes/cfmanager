@@ -16,7 +16,7 @@ from cfmanager.tui.screens.dashboard import DashboardView
 from cfmanager.tui.screens.dns import DNSView
 from cfmanager.tui.screens.loadbalancers import LoadBalancerView
 from cfmanager.tui.screens.pages import PagesView
-from cfmanager.tui.screens.r2 import R2View
+from cfmanager.tui.screens.r2 import R2View, R2ObjectsView
 from cfmanager.tui.screens.ssl import SSLView
 from cfmanager.tui.screens.zones import ZonesView
 
@@ -126,6 +126,19 @@ class CFManagerApp(App):
     def action_toggle_sidebar(self) -> None:
         sidebar = self.query_one("#sidebar")
         sidebar.display = not sidebar.display
+
+    async def navigate_to_r2_objects(self, bucket_name: str) -> None:
+        """Replace the r2 content pane with an object browser for *bucket_name*."""
+        switcher = self.query_one("#content-switcher")
+        # Remove previous object-browser widget if present
+        try:
+            old = switcher.query_one("#r2-objects")
+            await old.remove()
+        except Exception:
+            pass
+        browser = R2ObjectsView(bucket_name, id="r2-objects")
+        await switcher.mount(browser)
+        switcher.current = "r2-objects"
 
 
 def run_tui_app():

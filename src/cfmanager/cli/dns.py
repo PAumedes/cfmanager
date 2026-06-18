@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -15,20 +16,32 @@ def list_dns(
     ctx: typer.Context,
     zone_id: str = typer.Argument(..., help="The ID of the zone."),
     name: Optional[str] = typer.Option(None, "--name", "-n", help="Filter by record name."),
-    type: Optional[str] = typer.Option(None, "--type", "-t", help="Filter by record type (A, CNAME, etc.).")
+    type: Optional[str] = typer.Option(None, "--type", "-t", help="Filter by record type (A, CNAME, etc.)."),
+    watch: Optional[int] = typer.Option(None, "--watch", "-w", help="Refresh every N seconds. Press Ctrl+C to stop."),
 ):
     client = ctx.obj["client"]
     output_format = ctx.obj["output_format"]
-    
     dns_service = DNSService(client)
-    try:
+
+    def _run_once():
         records = dns_service.list_dns_records(zone_id, name=name, type=type)
         formatter = OutputFormatter(output_format)
         formatter.format(
             records,
             headers=["ID", "Name", "Type", "Content", "TTL", "Proxied"],
-            keys=["id", "name", "type", "content", "ttl", "proxied"]
+            keys=["id", "name", "type", "content", "ttl", "proxied"],
         )
+
+    try:
+        if watch is None:
+            _run_once()
+        else:
+            while True:
+                typer.echo("\033[2J\033[H", nl=False)
+                _run_once()
+                time.sleep(watch)
+    except KeyboardInterrupt:
+        pass
     except CFManagerError as e:
         typer.secho(f"Error: {e}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)

@@ -43,6 +43,75 @@ class BucketFormDialog(ModalScreen[Optional[dict]]):
             self.dismiss(None)
 
 
+class R2ObjectsView(Widget):
+    """Browse and manage objects inside a single R2 bucket."""
+
+    def __init__(self, bucket_name: str, **kwargs) -> None:
+        self._bucket_name = bucket_name
+        super().__init__(**kwargs)
+
+    def compose(self) -> ComposeResult:
+        with Container(id="main-content"):
+            yield Label(f"📦 R2 Objects — {self._bucket_name}", id="screen-title")
+            yield Label(
+                "Press [bold]d[/bold] to delete, [bold]r[/bold] to refresh, [bold]Esc/b[/bold] to go back."
+            )
+            yield DataTable(id="objects-table")
+
+    async def on_mount(self) -> None:
+        table = self.query_one(DataTable)
+        table.cursor_type = "row"
+        table.add_columns("Key", "Size (bytes)", "Last Modified")
+        self.run_worker(self._load_objects(), exclusive=True)
+
+    async def _load_objects(self) -> None:
+        table = self.query_one(DataTable)
+        table.clear()
+        r2_service = R2Service(self.app.cf_client)
+        try:
+            objects = await r2_service.list_objects_async(self._bucket_name)
+            for obj in objects:
+                table.add_row(
+                    obj.get("key", ""),
+                    str(obj.get("size", "")),
+                    str(obj.get("last_modified", "")),
+                    key=obj.get("key", ""),
+                )
+            if not objects:
+                self.app.notify("Bucket is empty.", severity="information")
+        except Exception as e:
+            self.app.notify(f"Could not load objects: {format_error(e)}", severity="error")
+
+    async def on_key(self, event) -> None:
+        table = self.query_one(DataTable)
+
+        if event.key == "r":
+            await self._load_objects()
+            return
+
+        if table.cursor_row is None or table.row_count == 0:
+            return
+
+        row_key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key
+        object_key = row_key.value
+
+        if event.key == "d":
+            async def confirm_delete(confirm: bool) -> None:
+                if confirm:
+                    r2_service = R2Service(self.app.cf_client)
+                    try:
+                        await r2_service.delete_object_async(self._bucket_name, object_key)
+                        self.app.notify(f"Object '{object_key}' deleted.", severity="success")
+                        await self._load_objects()
+                    except Exception as e:
+                        self.app.notify(f"Delete failed: {format_error(e)}", severity="error")
+
+            self.app.push_screen(
+                ConfirmDialog(f"Delete object '{object_key}'?"),
+                confirm_delete,
+            )
+
+
 class R2View(Widget):
     def __init__(self, **kwargs) -> None:
         self._last_loaded: float = 0.0
@@ -62,6 +131,7 @@ class R2View(Widget):
         table.cursor_type = "row"
         table.add_columns("Bucket Name", "Creation Date", "Location")
         self.run_worker(self.refresh_data(), exclusive=True)
+        self.app.sub_title = "R2 Storage  [dim](Enter: browse objects)[/dim]"
 
     async def refresh_data(self) -> None:
         table = self.query_one(DataTable)
@@ -88,6 +158,12 @@ class R2View(Widget):
 
         if event.key == "r":
             await self.refresh_data()
+            return
+
+        if event.key == "enter" and table.row_count > 0:
+            row_key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key
+            bucket_name = row_key.value
+            await self.app.navigate_to_r2_objects(bucket_name)
             return
 
         if event.key == "a":
