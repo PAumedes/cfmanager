@@ -51,10 +51,10 @@ def test_delete_zone(mock_cloudflare_client):
 
 def test_purge_cache(mock_cloudflare_client):
     service = ZoneService(mock_cloudflare_client)
-    
-    assert service.purge_cache("zone_123") is True
+
+    assert service.purge_cache("zone_123", purge_everything=True) is True
     mock_cloudflare_client.sync_client.zones.purge_cache.assert_called_with(zone_id="zone_123", purge_everything=True)
-    
+
     assert service.purge_cache("zone_123", files=["http://example.com/style.css"]) is True
     mock_cloudflare_client.sync_client.zones.purge_cache.assert_called_with(
         zone_id="zone_123", files=["http://example.com/style.css"]

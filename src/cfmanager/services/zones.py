@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Optional
 
 from cfmanager.core.client import CloudflareClient
-from cfmanager.core.exceptions import APIError
+from cfmanager.core.exceptions import APIError, ValidationError
 from cfmanager.core.logger import get_logger
 
 logger = get_logger()
@@ -62,14 +62,37 @@ class ZoneService:
             logger.exception(f"Failed to delete zone {zone_id}")
             raise APIError(f"Cloudflare API error deleting zone: {str(e)}") from e
 
-    def purge_cache(self, zone_id: str, files: Optional[List[str]] = None) -> bool:
+    def purge_cache(
+        self,
+        zone_id: str,
+        files: Optional[List[str]] = None,
+        tags: Optional[List[str]] = None,
+        hosts: Optional[List[str]] = None,
+        prefixes: Optional[List[str]] = None,
+        purge_everything: bool = False,
+    ) -> bool:
+        if not any([files, tags, hosts, prefixes, purge_everything]):
+            raise ValidationError("purge_cache requires at least one of: purge_everything, files, tags, hosts, prefixes.")
+        if purge_everything and any([files, tags, hosts, prefixes]):
+            raise ValidationError("purge_everything cannot be combined with files, tags, hosts, or prefixes.")
         try:
             logger.info(f"Purging cache for zone {zone_id}")
-            if files:
-                self.client.sync_client.zones.purge_cache(zone_id=zone_id, files=files)
+            params: Dict[str, Any] = {"zone_id": zone_id}
+            if purge_everything:
+                params["purge_everything"] = True
             else:
-                self.client.sync_client.zones.purge_cache(zone_id=zone_id, purge_everything=True)
+                if files:
+                    params["files"] = files
+                if tags:
+                    params["tags"] = tags
+                if hosts:
+                    params["hosts"] = hosts
+                if prefixes:
+                    params["prefixes"] = prefixes
+            self.client.sync_client.zones.purge_cache(**params)
             return True
+        except (APIError, ValidationError):
+            raise
         except Exception as e:
             logger.exception(f"Failed to purge cache for {zone_id}")
             raise APIError(f"Cloudflare API error purging cache: {str(e)}") from e
@@ -126,14 +149,37 @@ class ZoneService:
             logger.exception(f"Failed to delete zone asynchronously {zone_id}")
             raise APIError(f"Cloudflare API error deleting zone: {str(e)}") from e
 
-    async def purge_cache_async(self, zone_id: str, files: Optional[List[str]] = None) -> bool:
+    async def purge_cache_async(
+        self,
+        zone_id: str,
+        files: Optional[List[str]] = None,
+        tags: Optional[List[str]] = None,
+        hosts: Optional[List[str]] = None,
+        prefixes: Optional[List[str]] = None,
+        purge_everything: bool = False,
+    ) -> bool:
+        if not any([files, tags, hosts, prefixes, purge_everything]):
+            raise ValidationError("purge_cache requires at least one of: purge_everything, files, tags, hosts, prefixes.")
+        if purge_everything and any([files, tags, hosts, prefixes]):
+            raise ValidationError("purge_everything cannot be combined with files, tags, hosts, or prefixes.")
         try:
             logger.info(f"Purging cache asynchronously for zone {zone_id}")
-            if files:
-                await self.client.async_client.zones.purge_cache(zone_id=zone_id, files=files)
+            params: Dict[str, Any] = {"zone_id": zone_id}
+            if purge_everything:
+                params["purge_everything"] = True
             else:
-                await self.client.async_client.zones.purge_cache(zone_id=zone_id, purge_everything=True)
+                if files:
+                    params["files"] = files
+                if tags:
+                    params["tags"] = tags
+                if hosts:
+                    params["hosts"] = hosts
+                if prefixes:
+                    params["prefixes"] = prefixes
+            await self.client.async_client.zones.purge_cache(**params)
             return True
+        except (APIError, ValidationError):
+            raise
         except Exception as e:
             logger.exception(f"Failed to purge cache asynchronously for {zone_id}")
             raise APIError(f"Cloudflare API error purging cache: {str(e)}") from e

@@ -6,7 +6,7 @@ A CLI & TUI for managing Cloudflare infrastructure
 
 [![Tests](https://github.com/PAumedes/cfmanager/actions/workflows/test.yml/badge.svg)](https://github.com/PAumedes/cfmanager/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 
 ---
@@ -19,11 +19,16 @@ CFManager (`cfm`) is a terminal-based Cloudflare management tool that provides b
 | ------- | :-: | :-: |
 | **Zone/Domain Management** | ✅ | ✅ |
 | **DNS Record CRUD** | ✅ | ✅ |
+| **DNS Bulk Import/Export** (CSV & BIND zone file) | ✅ | — |
+| **Cross-zone DNS search** (`dns find`) | ✅ | — |
+| **Zone Backup & Restore** (JSON/YAML GitOps export) | ✅ | — |
 | **SSL/TLS Settings** | ✅ | ✅ |
 | **R2 Storage Buckets & Objects** | ✅ | ✅ |
 | **Pages Projects & Deployments** | ✅ | ✅ |
 | **Load Balancers & Pools** | ✅ | ✅ |
+| **Cache Purge** (all/files/tags/hosts/prefixes) | ✅ | — |
 | **Multiple Output Formats** (table/json/csv) | ✅ | — |
+| **Shell Completion** (`--install-completion`) | ✅ | — |
 | **Command Palette** (Ctrl+P) | — | ✅ |
 | **Inline Editing** | — | ✅ |
 | **Real-time Status Indicators** | — | ✅ |
@@ -31,6 +36,9 @@ CFManager (`cfm`) is a terminal-based Cloudflare management tool that provides b
 > **TUI Dashboard** — Cloudflare-branded dark theme with sidebar navigation, filterable data tables, modal dialogs, and keyboard-driven workflows.
 
 ## Installation
+
+> **R2 object operations** require the optional `boto3` extra:
+> `pip install "cfmanager[r2]"` or `uv tool install "cfmanager[r2]"`
 
 ### Pre-built binary (recommended for non-Python users)
 
@@ -96,11 +104,13 @@ export CLOUDFLARE_API_TOKEN=your_token_here
 ### Global Options
 
 ```bash
-cfm --help              # Show all commands
-cfm --version           # Show version
-cfm -v <command>        # Verbose mode (debug logging)
-cfm -o json <command>   # JSON output
-cfm -o csv <command>    # CSV output
+cfm --help                  # Show all commands
+cfm --version               # Show version
+cfm -v <command>            # Verbose mode (debug logging)
+cfm -o json <command>       # JSON output
+cfm -o csv <command>        # CSV output
+cfm --install-completion    # Install shell completion (bash/zsh/fish)
+cfm --show-completion       # Print completion script to stdout
 ```
 
 ### Zones / Domains
@@ -109,10 +119,33 @@ cfm -o csv <command>    # CSV output
 cfm zones list
 cfm zones list --name "example.com"
 cfm zones get <zone-id>
-cfm zones delete <zone-id>
+
+# Delete — use --confirm-name to require typing the zone name (safer)
+cfm zones delete <zone-id> --confirm-name "example.com"
+cfm zones delete <zone-id> --yes   # skip confirmation entirely
+
+# Cache purge
 cfm zones purge-cache <zone-id> --all
 cfm zones purge-cache <zone-id> --files "https://example.com/style.css"
+cfm zones purge-cache <zone-id> --tags "product-images,homepage"
+cfm zones purge-cache <zone-id> --hosts "assets.example.com"
+cfm zones purge-cache <zone-id> --prefixes "https://example.com/static/"
 ```
+
+#### Zone Backup & Restore (GitOps export)
+
+```bash
+# Backup DNS records + SSL settings to JSON
+cfm zones backup <zone-id>
+cfm zones backup <zone-id> --output backup.json
+cfm zones backup <zone-id> --format yaml --output backup.yaml
+
+# Restore from a backup file
+cfm zones restore <zone-id> --file backup.json
+cfm zones restore <zone-id> --file backup.json --dry-run  # preview only
+```
+
+The backup file captures DNS records and the SSL mode, making it easy to version-control your zone configuration and re-apply it after accidental changes.
 
 ### DNS Records
 
@@ -125,6 +158,39 @@ cfm dns create <zone-id> \
 
 cfm dns edit <zone-id> <record-id> --content "192.0.2.2" --ttl 1800
 cfm dns delete <zone-id> <record-id> --yes
+```
+
+#### Bulk Import / Export
+
+Export records to CSV or BIND zone-file format:
+
+```bash
+cfm dns export <zone-id>                       # CSV to stdout
+cfm dns export <zone-id> --output records.csv  # write to file
+cfm dns export <zone-id> --format bind         # BIND zone-file format
+```
+
+Import records from a file (supports CSV and BIND):
+
+```bash
+cfm dns import <zone-id> --file records.csv            # create records
+cfm dns import <zone-id> --file records.csv --dry-run  # preview only
+cfm dns import <zone-id> --file zone.txt --format bind
+```
+
+CSV format:
+
+```text
+name,type,content,ttl,proxied,comment
+api.example.com,A,192.0.2.1,3600,false,
+www.example.com,CNAME,example.com,1,true,CDN edge
+```
+
+#### Cross-zone search
+
+```bash
+cfm dns find api.example.com          # search all zones
+cfm dns find api.example.com --type A # filter by type
 ```
 
 ### SSL/TLS
@@ -221,6 +287,7 @@ Token resolution (last one wins):
 | Variable | Required | Description |
 | -------- | :------: | ----------- |
 | `CLOUDFLARE_API_TOKEN` | Yes | Your Cloudflare API token |
+| `CLOUDFLARE_ACCOUNT_ID` | No | Pin a specific account when the token has access to multiple |
 | `R2_ACCESS_KEY_ID` | R2 objects only | R2-specific access key (from Cloudflare dashboard) |
 | `R2_SECRET_ACCESS_KEY` | R2 objects only | R2-specific secret key |
 | `CFM_LOG_LEVEL` | No | `DEBUG`, `INFO` (default), `WARNING`, `ERROR` |
@@ -250,7 +317,7 @@ Create your token at [Cloudflare Dashboard → API Tokens](https://dash.cloudfla
 
 ### Prerequisites
 
-- Python 3.12+
+- Python 3.10+
 - [uv](https://docs.astral.sh/uv/) package manager
 
 ### Setup
@@ -311,11 +378,13 @@ make release major    # major bump
 
 ## Architecture
 
-```
+```text
 cfm (entry point)
  ├── CLI Layer (Typer)        → scriptable commands, table/JSON/CSV output
  ├── TUI Layer (Textual)      → interactive dashboard, keyboard-driven
- ├── Service Layer            → business logic & validation (cloudflare SDK + boto3)
+ ├── Service Layer            → business logic & validation
+ │    ├── zones, dns, ssl, r2, pages, loadbalancers
+ │    └── backup              → zone backup / restore (GitOps export)
  ├── Core                     → client, config, logging, output formatting
  └── Cloudflare API
 ```
@@ -331,7 +400,8 @@ Key design principles:
 - [x] Phase 1: Core foundation + Zones + DNS (CLI & TUI)
 - [x] Phase 2: SSL/TLS + R2 Storage + Pages (CLI & TUI)
 - [x] Phase 3: Load Balancers + Windows .exe + Command Palette
-- [ ] Future: Multi-account profiles, Workers management, Firewall rules
+- [x] Phase 4: Bulk DNS import/export, zone backup/restore, cross-zone search, cache purge by tag/host/prefix, typed-name confirmation
+- [ ] Future: Multi-account profiles, Workers & KV management, Firewall/WAF rules, Cloudflare Tunnels, Email Routing, Analytics
 
 ## Contributing
 

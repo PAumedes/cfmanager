@@ -82,7 +82,7 @@ class ZonesView(Widget):
                 if confirm:
                     zone_service = ZoneService(self.app.cf_client)
                     try:
-                        await zone_service.purge_cache_async(row_id)
+                        await zone_service.purge_cache_async(row_id, purge_everything=True)
                         self.app.notify(f"Purged cache for {row_name}", severity="success")
                     except Exception as e:
                         self.app.notify(f"Purge failed: {format_error(e)}", severity="error")
